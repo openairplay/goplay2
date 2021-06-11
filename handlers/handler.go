@@ -2,19 +2,21 @@ package handlers
 
 import (
 	"github.com/brutella/hc/hap"
+	"goplay2/audio"
 	"goplay2/homekit"
+	"goplay2/ptp"
 	"goplay2/rtsp"
-	"goplay2/stream"
 	"log"
 	"time"
 )
 
 type Rstp struct {
-	streams map[string]*stream.Server
+	streams map[string]*audio.Server
+	clock   *ptp.VirtualClock
 }
 
-func NewRstpHandler() *Rstp {
-	return &Rstp{streams: make(map[string]*stream.Server)}
+func NewRstpHandler(clock *ptp.VirtualClock) *Rstp {
+	return &Rstp{streams: make(map[string]*audio.Server), clock: clock}
 }
 
 func (r *Rstp) OnConnOpen(conn *rtsp.Conn) {

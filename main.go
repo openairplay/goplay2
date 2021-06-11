@@ -2,13 +2,13 @@ package main
 
 import (
 	"flag"
-	"fmt"
-	"github.com/brutella/hc/log"
 	"github.com/grandcat/zeroconf"
 	"goplay2/event"
 	"goplay2/handlers"
 	"goplay2/homekit"
+	"goplay2/ptp"
 	"goplay2/rtsp"
+	"log"
 	"net"
 	"os"
 	"strings"
@@ -17,10 +17,19 @@ import (
 
 const deviceName = "aiwa"
 
-func main() {
+func setLog() {
+	file, err := os.OpenFile("goplay.log", os.O_WRONLY|os.O_CREATE, 0600)
+	if err != nil {
+		panic(err)
+	}
+	log.SetOutput(file)
+}
 
+func main() {
 	var ifName string
-	log.Debug.SetOutput(os.Stdout)
+
+	//setLog()
+
 	flag.StringVar(&ifName, "i", "en0", "Specify interface")
 	flag.Parse() // after declaring flags we need to call it
 
@@ -30,7 +39,7 @@ func main() {
 	}
 	macAddress := strings.ToUpper(iFace.HardwareAddr.String())
 	homekit.Aiwa = homekit.NewAccessory(macAddress, aiwaDevice())
-	fmt.Printf("Aiwa %v", homekit.Aiwa)
+	log.Printf("Aiwa %v", homekit.Aiwa)
 	homekit.Server, err = homekit.NewServer(macAddress, deviceName)
 
 	server, err := zeroconf.Register(deviceName, "_airplay._tcp", "local.",
@@ -40,8 +49,11 @@ func main() {
 	}
 	defer server.Shutdown()
 
+	clock := ptp.NewVirtualClock()
+	ptp := ptp.NewServer(clock)
+
 	wg := new(sync.WaitGroup)
-	wg.Add(2)
+	wg.Add(3)
 
 	go func() {
 		event.RunEventServer()
@@ -49,7 +61,11 @@ func main() {
 	}()
 
 	go func() {
-		rtsp.RunRtspServer(handlers.NewRstpHandler())
+		ptp.Serve()
+	}()
+
+	go func() {
+		rtsp.RunRtspServer(handlers.NewRstpHandler(clock))
 		wg.Done()
 	}()
 

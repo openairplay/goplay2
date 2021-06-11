@@ -1,26 +1,45 @@
 package audio
 
 import (
+	"bytes"
 	"encoding/binary"
-	"fmt"
-	"github.com/AlbanSeurat/galac/alac"
-	"github.com/brutella/hc/crypto/chacha20poly1305"
+	"errors"
 	"github.com/gordonklaus/portaudio"
-	"github.com/pion/rtp"
+	"github.com/smallnest/ringbuffer"
 	"github.com/winlinvip/go-fdkaac"
+	"goplay2/globals"
+	"goplay2/ptp"
 	"io"
 	"log"
 	"net"
+	"time"
+)
+
+type PlaybackStatus uint8
+
+const (
+	CLOSED PlaybackStatus = iota
+	STARTED
+	PAUSED
+	SKIPPING
 )
 
 type Server struct {
-	alacDecoder *alac.Decoder
-	aacDecoder  *fdkaac.AacDecoder
+	aacDecoder    *fdkaac.AacDecoder
+	clock         *ptp.VirtualClock
+	controlChan   chan globals.ControlMessage
+	playbackChan  chan globals.ControlMessage
+	ringBuffer    *BlockingRingBuffer
+	sharedKey     []byte
+	timerChannel  *time.Timer
+	status        PlaybackStatus
+	stream        *portaudio.Stream
+	SkippingValue uint32
 }
 
-func NewServer() *Server {
+func NewServer(clock *ptp.VirtualClock, bufferSize int) *Server {
 
-	cookie := []byte{
+	/*cookie := []byte{
 		0x00, 0x00, 0x00, 0x24, 0x61, 0x6c, 0x61, 0x63, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x01, 0x60, 0x00, 0x10, 0x28, 0x0a, 0x0e, 0x02, 0x00, 0xff,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xac, 0x44}
@@ -28,7 +47,7 @@ func NewServer() *Server {
 	decoder, err := alac.NewDecoder(cookie)
 	if err != nil {
 		log.Panicf("alac debugger not available : %v", err)
-	}
+	}*/
 
 	aacDecoder := fdkaac.NewAacDecoder()
 
@@ -37,106 +56,151 @@ func NewServer() *Server {
 		log.Panicf("init decoder failed, err is %s", err)
 	}
 
+	timer := time.NewTimer(time.Hour)
+	timer.Stop()
+
 	return &Server{
-		alacDecoder: decoder,
-		aacDecoder:  aacDecoder,
+		aacDecoder:   aacDecoder,
+		clock:        clock,
+		controlChan:  make(chan globals.ControlMessage),
+		playbackChan: make(chan globals.ControlMessage),
+		ringBuffer:   NewBlockingReader(bufferSize),
+		timerChannel: timer,
 	}
 }
 
-func (s *Server) Listen(sharedKey []byte, l net.Listener) {
-	defer l.Close()
+func (s *Server) Setup(sharedKey []byte) (int, error) {
+	var err error
+	s.sharedKey = sharedKey
 
-	r, w := io.Pipe()
-
-	go func() {
-		s.Play(r)
-	}()
-
-	for {
-
-		conn, err := l.Accept()
-		if err != nil {
-			fmt.Println("Error accepting: ", err.Error())
-		}
-		go s.handleClientStream(sharedKey, conn, w)
-	}
-}
-
-func (s *Server) handleClientStream(sharedKey []byte, r io.ReadCloser, w io.WriteCloser) {
-	defer r.Close()
-	defer w.Close()
-
-	for {
-		pcmData, err := s.DecodeToPcm(sharedKey, r)
-		if err != nil {
-			log.Printf("PCM Decode Error : %v\n", err)
-			break
-		}
-		_, err = w.Write(pcmData)
-		if err != nil {
-			log.Printf("Pipe Write Error : %v\n", err)
-			break
-		}
-	}
-}
-
-func (s *Server) DecodeToPcm(sharedKey []byte, reader io.Reader) ([]byte, error) {
-
-	var i uint16
-	err := binary.Read(reader, binary.BigEndian, &i)
+	listener, err := net.Listen("tcp", ":")
 	if err != nil {
-		return nil, err
-	} else {
+		return -1, err
+	}
+	go func() {
+		s.control(listener)
+	}()
+	switch a := listener.Addr().(type) {
+	case *net.TCPAddr:
+		return a.Port, nil
+	}
+	return -1, errors.New("port not defined")
+}
 
-		buffer := make([]byte, i-2)
-		if _, err := io.ReadFull(reader, buffer) ; err != nil {
-			return nil, err
+func (s *Server) control(l net.Listener) {
+	defer l.Close()
+	go func() {
+		s.play()
+	}()
+	conn, err := l.Accept()
+	if err != nil {
+		log.Println("Error accepting: ", err.Error())
+	}
+	defer conn.Close()
+	for {
+		select {
+		case <-s.controlChan:
+			s.ringBuffer.Close()
+			log.Println("closing control")
+			return
+		default:
+			if _, err := io.Copy(s.ringBuffer, conn); err != nil && err != ringbuffer.ErrIsFull {
+				log.Printf("error copying data into ring buffer %v", err)
+				return
+			}
 		}
-		packet := rtp.Packet{}
-		if err = packet.Unmarshal(buffer) ; err != nil {
-			return nil, err
-		}
-		message := packet.Payload[:len(packet.Payload)-24]
-		nonce := packet.Payload[len(packet.Payload)-8:]
-		var mac [16]byte
-		copy(mac[:], packet.Payload[len(packet.Payload)-24:len(packet.Payload)-8])
-		aad := packet.Raw[4:0xc]
-
-		decrypted, err := chacha20poly1305.DecryptAndVerify(sharedKey, nonce, message, mac, aad)
-		if err != nil {
-			return nil, err
-		}
-		return s.aacDecoder.Decode(decrypted)
 	}
 }
 
-func (s *Server) Play(reader io.Reader) {
+func (s *Server) decodeToPcm(reader io.Reader) (*PCMFrame, error) {
+	var packetSize uint16
+	for {
+		err := binary.Read(reader, binary.BigEndian, &packetSize)
+		if err != nil {
+			return nil, err
+		}
+		buffer := make([]byte, packetSize-2)
+		if _, err := io.ReadFull(reader, buffer); err != nil {
+			return nil, err
+		}
+		packet, err := NewFrame(s.aacDecoder, s.sharedKey, buffer)
+		if err != nil {
+			return nil, err
+		}
+		if packet.SequenceNumber > s.SkippingValue {
+			return packet, nil
+		}
+	}
+}
 
+func (s *Server) play() {
+	var err error
 	if err := portaudio.Initialize(); err != nil {
 		log.Fatalln("PortAudio init error:", err)
 	}
 	defer portaudio.Terminate()
 
-	out := make([]int16, 1024)
-	stream, err := portaudio.OpenDefaultStream(0, 2, 44100, len(out), &out)
+	out := make([]int16, 2048)
+	// TODO : get the framePerBuffer from setup
+	s.stream, err = portaudio.OpenDefaultStream(0, 2, 44100, 1024, &out)
 	if err != nil {
 		log.Println("PortAudio Stream opened false ", err)
 		return
 	}
-	defer stream.Close()
-
-	err = stream.Start()
-	if err != nil {
-		log.Fatalln(err)
-	}
+	defer s.stream.Close()
 
 	for {
-		err := binary.Read(reader, binary.LittleEndian, out)
-		if err == io.EOF {
-			log.Println("error reading pipe", err)
-			break
+		pcmFrame, err := s.decodeToPcm(s.ringBuffer)
+		if err != nil {
+			log.Printf("PCM Decode Error : %v\n", err)
+			return
 		}
-		stream.Write()
-	}
 
+		err = binary.Read(bytes.NewReader(pcmFrame.pcmData), binary.LittleEndian, out)
+		if err != nil {
+			log.Printf("error reading data : %v\n", err)
+			return
+		}
+
+		switch s.status {
+		case CLOSED:
+			s.status = STARTED
+			<-s.timerChannel.C
+			err = s.stream.Start()
+			if err != nil {
+				log.Fatalln(err)
+			}
+		}
+
+		select {
+		case <-s.playbackChan:
+			s.status = CLOSED
+			if err := s.stream.Stop(); err != nil {
+				log.Printf("error stoping audio :%v\n", err)
+			}
+		default:
+			if err = s.stream.Write(); err != nil {
+				log.Printf("error writing audio :%v\n", err)
+				return
+			}
+		}
+
+	}
+}
+
+func (s *Server) Start(rtpTime uint32, networkTime time.Time) {
+	log.Printf("RtpTime : %v, networkTime %v ", rtpTime, networkTime)
+	s.timerChannel.Reset(networkTime.Sub(s.clock.Now()))
+}
+
+func (s *Server) Pause() {
+	s.playbackChan <- globals.PAUSE_STREAM
+}
+
+func (s *Server) Stop() {
+	s.controlChan <- globals.TEARDOWN
+}
+
+func (s *Server) Flush(sequenceNumber uint64) {
+	s.SkippingValue = uint32(sequenceNumber)
 }

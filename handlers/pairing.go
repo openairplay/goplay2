@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/brutella/hc/crypto"
 	"github.com/brutella/hc/hap"
 	"github.com/brutella/hc/hap/pair"
@@ -10,9 +9,9 @@ import (
 	"goplay2/homekit"
 	"goplay2/rtsp"
 	"howett.net/plist"
+	"log"
 	"strings"
 )
-
 
 func (r *Rstp) OnPairSetup(conn *rtsp.Conn, req *rtsp.Request) (*rtsp.Response, error) {
 	var err error
@@ -97,13 +96,12 @@ func (r *Rstp) OnPairVerify(conn *rtsp.Conn, req *rtsp.Request) (*rtsp.Response,
 	return &rtsp.Response{StatusCode: rtsp.StatusOK, Body: body}, nil
 }
 
-
 func (r *Rstp) OnPairAdd(req *rtsp.Request) (*rtsp.Response, error) {
 
 	if contentType, found := req.Header["Content-Type"]; found && strings.EqualFold(contentType[0], "application/x-apple-binary-plist") {
 		var content map[string]interface{}
 		if _, err := plist.Unmarshal(req.Body, &content); err == nil {
-			fmt.Printf("Concent : %v\n", content)
+			log.Printf("Concent : %v\n", content)
 		}
 	}
 
@@ -115,19 +113,18 @@ func (r *Rstp) OnPairList(req *rtsp.Request) (*rtsp.Response, error) {
 	if contentType, found := req.Header["Content-Type"]; found && strings.EqualFold(contentType[0], "application/x-apple-binary-plist") {
 		var content map[string]interface{}
 		if _, err := plist.Unmarshal(req.Body, &content); err == nil {
-			fmt.Printf("Concent : %v\n", content)
+			log.Printf("Concent : %v\n", content)
 		}
 	}
 	return &rtsp.Response{StatusCode: rtsp.StatusOK}, nil
 }
-
 
 func (r *Rstp) OnPairConfigure(req *rtsp.Request) (*rtsp.Response, error) {
 
 	if contentType, found := req.Header["Content-Type"]; found && strings.EqualFold(contentType[0], "application/x-apple-binary-plist") {
 		var content map[string]interface{}
 		if _, err := plist.Unmarshal(req.Body, &content); err == nil {
-			fmt.Printf("Concent : %v\n", content)
+			log.Printf("Concent : %v\n", content)
 		}
 	}
 

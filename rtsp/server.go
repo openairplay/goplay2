@@ -2,7 +2,6 @@ package rtsp
 
 import (
 	"bufio"
-	"fmt"
 	"log"
 	"net"
 )
@@ -20,9 +19,9 @@ type Handler interface {
 }
 
 type Server struct {
-	h       Handler
-	bw      *bufio.Writer
-	br      *bufio.Reader
+	h  Handler
+	bw *bufio.Writer
+	br *bufio.Reader
 }
 
 type Conn struct {
@@ -52,7 +51,7 @@ func RunRtspServer(handlers Handler) (err error) {
 
 			conn, err := l.Accept()
 			if err != nil {
-				fmt.Println("Error accepting: ", err.Error())
+				log.Println("Error accepting: ", err.Error())
 				return err
 			}
 			rConn := &Conn{

@@ -1,8 +1,8 @@
 package handlers
 
 import (
+	"goplay2/audio"
 	"goplay2/rtsp"
-	"goplay2/stream"
 	"howett.net/plist"
 	"strings"
 )
@@ -52,29 +52,27 @@ func (r *Rstp) OnSetupWeb(req *rtsp.Request) (*rtsp.Response, error) {
 			return &rtsp.Response{StatusCode: rtsp.StatusBadRequest}, nil
 		}
 		if content.Streams != nil {
+			if s, found := r.streams[req.Path]; found {
+				port, err := s.Setup(content.Streams[0].SharedKey[:])
+				if err != nil {
+					return &rtsp.Response{StatusCode: rtsp.StatusInternalServerError}, nil
+				}
+				setupStreamsResponse := &setupSteamsResponse{
+					Streams: []setupStream{{
+						BufferSize: BufferSize,
+						DataPort:   uint16(port),
+						TypeStream: content.Streams[0].Type,
+					}},
+				}
 
-			s := r.streams[req.Path]
-			port, err := s.Start(content.Streams[0].SharedKey[:])
-			if err != nil {
-				return &rtsp.Response{StatusCode: rtsp.StatusInternalServerError}, nil
-			}
-
-			setupStreamsResponse := &setupSteamsResponse{
-				Streams: []setupStream{{
-					BufferSize: BufferSize,
-					DataPort:   uint16(port),
-					TypeStream: content.Streams[0].Type,
-				}},
-			}
-
-			if body, err := plist.Marshal(*setupStreamsResponse, plist.AutomaticFormat); err == nil {
-				return &rtsp.Response{StatusCode: rtsp.StatusOK, Header: rtsp.Header{
-					"Content-Type": rtsp.HeaderValue{"application/x-apple-binary-plist"},
-				}, Body: body}, nil
+				if body, err := plist.Marshal(*setupStreamsResponse, plist.AutomaticFormat); err == nil {
+					return &rtsp.Response{StatusCode: rtsp.StatusOK, Header: rtsp.Header{
+						"Content-Type": rtsp.HeaderValue{"application/x-apple-binary-plist"},
+					}, Body: body}, nil
+				}
 			}
 		} else {
-
-			r.streams[req.Path] = stream.NewServer(req.Path)
+			r.streams[req.Path] = audio.NewServer(r.clock, BufferSize)
 
 			setupEventResponse := &setupEventResponse{EventPort: 60003, TimingPort: 0}
 			if body, err := plist.Marshal(*setupEventResponse, plist.AutomaticFormat); err == nil {
