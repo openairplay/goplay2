@@ -8,14 +8,13 @@ Can
 
 * be paired **manually** on IOS 14.x with a Homepod Mini
 * Play AAC 44100 with buffered audio
+* Play/Pause/Stop/Seek
+* PTP supported and sync with homepod mini BUT **need improvments** 
 
 ## Next Step 
 
-* Support play/pause/forward/...
-* Support Synchro multi room
-* Support PTP for real (needed to have shk key in SETUP stream)
-* Play ALAC
-* Manage Homekit (break at POST /configure Endpoint)
 * Create a real build for MacOs and Raspi
+* Manage Homekit (break at POST /configure Endpoint)
+* Play ALAC
 * Need to be hardened 
 
