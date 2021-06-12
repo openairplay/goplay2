@@ -18,3 +18,7 @@ Can
 * Play ALAC
 * Need to be hardened 
 
+### Bugs
+
+* Memory Leak in PTP sequence management
+* Replace Ring Channel with linked list structures
