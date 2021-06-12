@@ -29,7 +29,7 @@ type Player struct {
 func NewPlayer(clock *ptp.VirtualClock, ring *RingBuffer) *Player {
 	return &Player{
 		clock:          clock,
-		ControlChannel: make(chan globals.ControlMessage, 3),
+		ControlChannel: make(chan globals.ControlMessage, 100),
 		Status:         STOPPED,
 		ringBuffer:     ring,
 		nextStart:      0,
@@ -98,7 +98,7 @@ func (p *Player) Run() {
 
 func (p *Player) skipUntil(sequenceId int64) {
 	for frame := range p.ringBuffer.outputChannel {
-		if frame.SequenceNumber >= uint32(sequenceId) {
+		if frame.SequenceNumber > uint32(sequenceId) {
 			return
 		}
 	}

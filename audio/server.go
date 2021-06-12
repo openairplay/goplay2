@@ -3,7 +3,6 @@ package audio
 import (
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"github.com/winlinvip/go-fdkaac"
 	"goplay2/globals"
 	"goplay2/ptp"
@@ -15,7 +14,6 @@ import (
 
 type Server struct {
 	aacDecoder   *fdkaac.AacDecoder
-	controlChan  chan globals.ControlMessage
 	ringBuffer   *RingBuffer
 	sharedKey    []byte
 	inputChannel chan *PCMFrame
@@ -49,7 +47,6 @@ func NewServer(clock *ptp.VirtualClock, bufferSize int) *Server {
 
 	return &Server{
 		aacDecoder:   aacDecoder,
-		controlChan:  make(chan globals.ControlMessage),
 		inputChannel: inputChannel,
 		ringBuffer:   buffer,
 		player:       NewPlayer(clock, buffer),
@@ -86,20 +83,13 @@ func (s *Server) control(l net.Listener) {
 		s.player.Run()
 	}()
 	for {
-		select {
-		case <-s.controlChan:
-			s.ringBuffer.Close()
-			close(s.inputChannel)
-			log.Println("closing control")
+		frame, err := s.decodeToPcm(conn)
+		if err != nil {
+			log.Printf("error copying data into ring buffer %v", err)
 			return
-		default:
-			frame, err := s.decodeToPcm(conn)
-			if err != nil {
-				log.Printf("error copying data into ring buffer %v", err)
-				return
-			}
-			s.inputChannel <- frame
 		}
+		s.inputChannel <- frame
+
 	}
 }
 
@@ -123,7 +113,6 @@ func (s *Server) SetRateAnchorTime(rtpTime uint32, networkTime time.Time) {
 }
 
 func (s *Server) Teardown() {
-	s.controlChan <- globals.ControlMessage{MType: globals.STOP}
 	s.player.ControlChannel <- globals.ControlMessage{MType: globals.STOP}
 }
 
@@ -134,20 +123,20 @@ func (s *Server) SetRate0() {
 
 func (s *Server) Flush(sequenceId uint64) {
 	if s.player.Status != STOPPED {
-		fmt.Printf("Flush while running\n")
 		s.FlushRunning(sequenceId)
 	} else {
-		fmt.Printf("Flush While stop\n")
 		s.FlushStopped(sequenceId)
 	}
 }
 
 func (s *Server) FlushRunning(sequenceId uint64) {
+	log.Printf("Flush While Running until seq %v\n", sequenceId)
 	s.player.ControlChannel <- globals.ControlMessage{MType: globals.PAUSE, Value: int64(sequenceId)}
 	s.player.ControlChannel <- globals.ControlMessage{MType: globals.SKIP, Value: int64(sequenceId)}
 	s.player.ControlChannel <- globals.ControlMessage{MType: globals.START, Value: int64(sequenceId)}
 }
 
 func (s *Server) FlushStopped(sequenceId uint64) {
+	log.Printf("Flush While Stopped until seq %v\n", sequenceId)
 	s.player.ControlChannel <- globals.ControlMessage{MType: globals.SKIP, Value: int64(sequenceId)}
 }
