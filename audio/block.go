@@ -1,48 +1,26 @@
 package audio
 
-import (
-	"github.com/smallnest/ringbuffer"
-	"io"
-	"sync"
-)
-
-type BlockingRingBuffer struct {
-	buf    *ringbuffer.RingBuffer
-	cond   *sync.Cond
-	closed bool
+type RingBuffer struct {
+	inputChannel  <-chan *PCMFrame
+	outputChannel chan *PCMFrame
 }
 
-func NewBlockingReader(size int) *BlockingRingBuffer {
-	m := sync.Mutex{}
-	return &BlockingRingBuffer{
-		cond: sync.NewCond(&m),
-		buf:  ringbuffer.New(size),
-	}
+func NewRingBuffer(inputChannel chan *PCMFrame, bufferSize int) *RingBuffer {
+	return &RingBuffer{inputChannel, make(chan *PCMFrame, bufferSize)}
 }
 
-func (br *BlockingRingBuffer) Write(b []byte) (ln int, err error) {
-	ln, err = br.buf.Write(b)
-	br.cond.Broadcast()
-	return
-}
-
-func (br *BlockingRingBuffer) Read(b []byte) (ln int, err error) {
-	ln, err = br.buf.Read(b)
-	br.cond.L.Lock()
-	for err == ringbuffer.ErrIsEmpty {
-		if br.closed {
-			return 0, io.EOF
+func (r *RingBuffer) Run() {
+	for v := range r.inputChannel {
+		select {
+		case r.outputChannel <- v:
+		default:
+			<-r.outputChannel
+			r.outputChannel <- v
 		}
-		br.cond.Wait()
-		ln, err = br.buf.Read(b)
 	}
-	br.cond.L.Unlock()
-	return
+	close(r.outputChannel)
 }
 
-func (br *BlockingRingBuffer) Close() error {
-	br.closed = true
-	br.buf.Reset()
-	br.cond.Broadcast()
-	return nil
+func (r *RingBuffer) Close() {
+	close(r.outputChannel)
 }

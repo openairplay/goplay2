@@ -65,9 +65,9 @@ func (r *Rstp) OnSetRateAnchorTime(req *rtsp.Request) (*rtsp.Response, error) {
 		}
 		if s, found := r.streams[req.Path]; found {
 			if content.Rate == 0 {
-				s.Pause()
+				s.SetRate0()
 			} else {
-				s.Start(content.RtpTime, content.StartTime())
+				s.SetRateAnchorTime(content.RtpTime, content.StartTime())
 			}
 		}
 	}
@@ -92,7 +92,7 @@ func (r *Rstp) OnCommand(req *rtsp.Request) (*rtsp.Response, error) {
 
 func (r *Rstp) OnTeardownWeb(req *rtsp.Request) (*rtsp.Response, error) {
 	if s, found := r.streams[req.Path]; found {
-		s.Stop()
+		s.Teardown()
 		delete(r.streams, req.Path)
 	}
 	return &rtsp.Response{StatusCode: rtsp.StatusOK}, nil

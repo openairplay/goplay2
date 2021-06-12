@@ -27,10 +27,12 @@ func setLog() {
 
 func main() {
 	var ifName string
+	var delay int64
 
 	//setLog()
 
 	flag.StringVar(&ifName, "i", "en0", "Specify interface")
+	flag.Int64Var(&delay, "delay", -50, "Specify hardware delay in ms (useful on slow computer)")
 	flag.Parse() // after declaring flags we need to call it
 
 	iFace, err := net.InterfaceByName(ifName)
@@ -49,7 +51,7 @@ func main() {
 	}
 	defer server.Shutdown()
 
-	clock := ptp.NewVirtualClock()
+	clock := ptp.NewVirtualClock(delay)
 	ptp := ptp.NewServer(clock)
 
 	wg := new(sync.WaitGroup)

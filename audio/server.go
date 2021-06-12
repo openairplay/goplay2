@@ -1,11 +1,9 @@
 package audio
 
 import (
-	"bytes"
 	"encoding/binary"
 	"errors"
-	"github.com/gordonklaus/portaudio"
-	"github.com/smallnest/ringbuffer"
+	"fmt"
 	"github.com/winlinvip/go-fdkaac"
 	"goplay2/globals"
 	"goplay2/ptp"
@@ -15,26 +13,13 @@ import (
 	"time"
 )
 
-type PlaybackStatus uint8
-
-const (
-	CLOSED PlaybackStatus = iota
-	STARTED
-	PAUSED
-	SKIPPING
-)
-
 type Server struct {
-	aacDecoder    *fdkaac.AacDecoder
-	clock         *ptp.VirtualClock
-	controlChan   chan globals.ControlMessage
-	playbackChan  chan globals.ControlMessage
-	ringBuffer    *BlockingRingBuffer
-	sharedKey     []byte
-	timerChannel  *time.Timer
-	status        PlaybackStatus
-	stream        *portaudio.Stream
-	SkippingValue uint32
+	aacDecoder   *fdkaac.AacDecoder
+	controlChan  chan globals.ControlMessage
+	ringBuffer   *RingBuffer
+	sharedKey    []byte
+	inputChannel chan *PCMFrame
+	player       *Player
 }
 
 func NewServer(clock *ptp.VirtualClock, bufferSize int) *Server {
@@ -56,27 +41,29 @@ func NewServer(clock *ptp.VirtualClock, bufferSize int) *Server {
 		log.Panicf("init decoder failed, err is %s", err)
 	}
 
-	timer := time.NewTimer(time.Hour)
-	timer.Stop()
+	inputChannel := make(chan *PCMFrame)
+
+	// Divided by 100 -> average size of a RTP packet
+	// TODO : create a circular blocked list for better flush handling
+	buffer := NewRingBuffer(inputChannel, bufferSize/100)
 
 	return &Server{
 		aacDecoder:   aacDecoder,
-		clock:        clock,
 		controlChan:  make(chan globals.ControlMessage),
-		playbackChan: make(chan globals.ControlMessage),
-		ringBuffer:   NewBlockingReader(bufferSize),
-		timerChannel: timer,
+		inputChannel: inputChannel,
+		ringBuffer:   buffer,
+		player:       NewPlayer(clock, buffer),
 	}
 }
 
 func (s *Server) Setup(sharedKey []byte) (int, error) {
 	var err error
 	s.sharedKey = sharedKey
-
 	listener, err := net.Listen("tcp", ":")
 	if err != nil {
 		return -1, err
 	}
+	go s.ringBuffer.Run()
 	go func() {
 		s.control(listener)
 	}()
@@ -89,118 +76,78 @@ func (s *Server) Setup(sharedKey []byte) (int, error) {
 
 func (s *Server) control(l net.Listener) {
 	defer l.Close()
-	go func() {
-		s.play()
-	}()
 	conn, err := l.Accept()
 	if err != nil {
 		log.Println("Error accepting: ", err.Error())
 	}
 	defer conn.Close()
+
+	go func() {
+		s.player.Run()
+	}()
 	for {
 		select {
 		case <-s.controlChan:
 			s.ringBuffer.Close()
+			close(s.inputChannel)
 			log.Println("closing control")
 			return
 		default:
-			if _, err := io.Copy(s.ringBuffer, conn); err != nil && err != ringbuffer.ErrIsFull {
+			frame, err := s.decodeToPcm(conn)
+			if err != nil {
 				log.Printf("error copying data into ring buffer %v", err)
 				return
 			}
+			s.inputChannel <- frame
 		}
 	}
 }
 
 func (s *Server) decodeToPcm(reader io.Reader) (*PCMFrame, error) {
 	var packetSize uint16
-	for {
-		err := binary.Read(reader, binary.BigEndian, &packetSize)
-		if err != nil {
-			return nil, err
-		}
-		buffer := make([]byte, packetSize-2)
-		if _, err := io.ReadFull(reader, buffer); err != nil {
-			return nil, err
-		}
-		packet, err := NewFrame(s.aacDecoder, s.sharedKey, buffer)
-		if err != nil {
-			return nil, err
-		}
-		if packet.SequenceNumber > s.SkippingValue {
-			return packet, nil
-		}
-	}
-}
-
-func (s *Server) play() {
-	var err error
-	if err := portaudio.Initialize(); err != nil {
-		log.Fatalln("PortAudio init error:", err)
-	}
-	defer portaudio.Terminate()
-
-	out := make([]int16, 2048)
-	// TODO : get the framePerBuffer from setup
-	s.stream, err = portaudio.OpenDefaultStream(0, 2, 44100, 1024, &out)
+	err := binary.Read(reader, binary.BigEndian, &packetSize)
 	if err != nil {
-		log.Println("PortAudio Stream opened false ", err)
-		return
+		return nil, err
 	}
-	defer s.stream.Close()
+	buffer := make([]byte, packetSize-2)
+	if _, err := io.ReadFull(reader, buffer); err != nil {
+		return nil, err
+	}
+	return NewFrame(s.aacDecoder, s.sharedKey, buffer)
+}
 
-	for {
-		pcmFrame, err := s.decodeToPcm(s.ringBuffer)
-		if err != nil {
-			log.Printf("PCM Decode Error : %v\n", err)
-			return
-		}
+func (s *Server) SetRateAnchorTime(rtpTime uint32, networkTime time.Time) {
+	// TODO send message for SKIP to TIMESTAMP (find the sequence and then send the sequence from timetamp in buffer
+	s.player.ControlChannel <- globals.ControlMessage{MType: globals.WAIT, Value: networkTime.Unix()}
+	s.player.ControlChannel <- globals.ControlMessage{MType: globals.START}
+}
 
-		err = binary.Read(bytes.NewReader(pcmFrame.pcmData), binary.LittleEndian, out)
-		if err != nil {
-			log.Printf("error reading data : %v\n", err)
-			return
-		}
+func (s *Server) Teardown() {
+	s.controlChan <- globals.ControlMessage{MType: globals.STOP}
+	s.player.ControlChannel <- globals.ControlMessage{MType: globals.STOP}
+}
 
-		switch s.status {
-		case CLOSED:
-			s.status = STARTED
-			<-s.timerChannel.C
-			err = s.stream.Start()
-			if err != nil {
-				log.Fatalln(err)
-			}
-		}
+func (s *Server) SetRate0() {
+	s.player.Status = STOPPED
+	s.player.ControlChannel <- globals.ControlMessage{MType: globals.PAUSE}
+}
 
-		select {
-		case <-s.playbackChan:
-			s.status = CLOSED
-			if err := s.stream.Stop(); err != nil {
-				log.Printf("error stoping audio :%v\n", err)
-			}
-		default:
-			if err = s.stream.Write(); err != nil {
-				log.Printf("error writing audio :%v\n", err)
-				return
-			}
-		}
-
+func (s *Server) Flush(sequenceId uint64) {
+	if s.player.Status != STOPPED {
+		fmt.Printf("Flush while running\n")
+		s.FlushRunning(sequenceId)
+	} else {
+		fmt.Printf("Flush While stop\n")
+		s.FlushStopped(sequenceId)
 	}
 }
 
-func (s *Server) Start(rtpTime uint32, networkTime time.Time) {
-	log.Printf("RtpTime : %v, networkTime %v ", rtpTime, networkTime)
-	s.timerChannel.Reset(networkTime.Sub(s.clock.Now()))
+func (s *Server) FlushRunning(sequenceId uint64) {
+	s.player.ControlChannel <- globals.ControlMessage{MType: globals.PAUSE, Value: int64(sequenceId)}
+	s.player.ControlChannel <- globals.ControlMessage{MType: globals.SKIP, Value: int64(sequenceId)}
+	s.player.ControlChannel <- globals.ControlMessage{MType: globals.START, Value: int64(sequenceId)}
 }
 
-func (s *Server) Pause() {
-	s.playbackChan <- globals.PAUSE_STREAM
-}
-
-func (s *Server) Stop() {
-	s.controlChan <- globals.TEARDOWN
-}
-
-func (s *Server) Flush(sequenceNumber uint64) {
-	s.SkippingValue = uint32(sequenceNumber)
+func (s *Server) FlushStopped(sequenceId uint64) {
+	s.player.ControlChannel <- globals.ControlMessage{MType: globals.SKIP, Value: int64(sequenceId)}
 }

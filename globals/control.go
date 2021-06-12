@@ -1,8 +1,16 @@
 package globals
 
-type ControlMessage uint8
+type ControlMessageType uint8
+
+type ControlMessage struct {
+	MType ControlMessageType
+	Value int64
+}
 
 const (
-	TEARDOWN ControlMessage = iota
-	PAUSE_STREAM
+	PAUSE ControlMessageType = iota
+	START
+	WAIT
+	SKIP
+	STOP
 )
