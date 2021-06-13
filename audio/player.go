@@ -97,6 +97,11 @@ func (p *Player) Run() {
 }
 
 func (p *Player) skipUntil(sequenceId int64) {
+	if p.Status == PLAYING {
+		log.Printf("Stopping streaming for skipping to sequence %v\n", sequenceId)
+		p.stream.Stop()
+		p.Status = STOPPED
+	}
 	for frame := range p.ringBuffer.outputChannel {
 		if frame.SequenceNumber > uint32(sequenceId) {
 			return

@@ -117,26 +117,10 @@ func (s *Server) Teardown() {
 }
 
 func (s *Server) SetRate0() {
-	s.player.Status = STOPPED
 	s.player.ControlChannel <- globals.ControlMessage{MType: globals.PAUSE}
 }
 
 func (s *Server) Flush(sequenceId uint64) {
-	if s.player.Status != STOPPED {
-		s.FlushRunning(sequenceId)
-	} else {
-		s.FlushStopped(sequenceId)
-	}
-}
-
-func (s *Server) FlushRunning(sequenceId uint64) {
-	log.Printf("Flush While Running until seq %v\n", sequenceId)
-	s.player.ControlChannel <- globals.ControlMessage{MType: globals.PAUSE, Value: int64(sequenceId)}
-	s.player.ControlChannel <- globals.ControlMessage{MType: globals.SKIP, Value: int64(sequenceId)}
-	s.player.ControlChannel <- globals.ControlMessage{MType: globals.START, Value: int64(sequenceId)}
-}
-
-func (s *Server) FlushStopped(sequenceId uint64) {
-	log.Printf("Flush While Stopped until seq %v\n", sequenceId)
 	s.player.ControlChannel <- globals.ControlMessage{MType: globals.SKIP, Value: int64(sequenceId)}
 }
+
