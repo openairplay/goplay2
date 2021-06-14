@@ -20,5 +20,4 @@ Can
 
 ## Bugs
 
-* Memory Leak in PTP sequence management
 * Replace Ring Channel with linked list structures
