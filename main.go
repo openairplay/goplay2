@@ -15,8 +15,6 @@ import (
 	"sync"
 )
 
-const deviceName = "aiwa"
-
 func setLog() {
 	file, err := os.OpenFile("goplay.log", os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
@@ -27,12 +25,14 @@ func setLog() {
 
 func main() {
 	var ifName string
+	var deviceName string
 	var delay int64
 
 	//setLog()
 
-	flag.StringVar(&ifName, "i", "en0", "Specify interface")
-	flag.Int64Var(&delay, "delay", -50, "Specify hardware delay in ms (useful on slow computer)")
+	flag.StringVar(&ifName, "i", "eth0", "Specify interface")
+	flag.Int64Var(&delay, "delay", 50, "Specify hardware delay in ms (useful on slow computer)")
+	flag.StringVar(&deviceName, "n", "goplay", "Specify device name")
 	flag.Parse() // after declaring flags we need to call it
 
 	iFace, err := net.InterfaceByName(ifName)
@@ -40,12 +40,12 @@ func main() {
 		panic(err)
 	}
 	macAddress := strings.ToUpper(iFace.HardwareAddr.String())
-	homekit.Aiwa = homekit.NewAccessory(macAddress, aiwaDevice())
-	log.Printf("Aiwa %v", homekit.Aiwa)
+	homekit.Device = homekit.NewAccessory(macAddress, airplayDevice())
+	log.Printf("Device %v", homekit.Device)
 	homekit.Server, err = homekit.NewServer(macAddress, deviceName)
 
 	server, err := zeroconf.Register(deviceName, "_airplay._tcp", "local.",
-		7000, homekit.Aiwa.ToRecords(), []net.Interface{*iFace})
+		7000, homekit.Device.ToRecords(), []net.Interface{*iFace})
 	if err != nil {
 		panic(err)
 	}

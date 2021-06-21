@@ -2,7 +2,7 @@ package main
 
 import "goplay2/globals"
 
-func aiwaDevice() globals.Features {
+func airplayDevice() globals.Features {
 	var features = globals.NewFeatures().Set(globals.SupportsAirPlayAudio).Set(globals.AudioRedundant)
 	features = features.Set(globals.HasUnifiedAdvertiserInfo).Set(globals.SupportsBufferedAudio)
 	features = features.Set(globals.SupportsUnifiedMediaControl)

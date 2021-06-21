@@ -39,9 +39,9 @@ func NewAccessory(deviceId string, features globals.Features) *Accessory {
 		protovers: "1.1",
 		acl:       "0",
 		rsf:       "0x0",
-		Pi:        UUID{ UUID: uuid.New() },
-		Gid:       UUID{ UUID: uuid.New() },
-		Psi:       UUID{ UUID: uuid.New() },
+		Pi:        UUID{UUID: uuid.New()},
+		Gid:       UUID{UUID: uuid.New()},
+		Psi:       UUID{UUID: uuid.New()},
 		gcgl:      "0",
 		igl:       "0",
 		pk:        "b07727d6f6cd6e08b58ede525ec3cdeaa252ad9f683feb212ef8a205246554e7",
@@ -82,5 +82,4 @@ func (t *Accessory) ToRecords() []string {
 
 }
 
-var Aiwa *Accessory
-
+var Device *Accessory
