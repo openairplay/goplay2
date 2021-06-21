@@ -2,7 +2,7 @@ package ptp
 
 import (
 	"encoding"
-	"github.com/toxxin/go-ptp"
+	"github.com/albanseurat/go-ptp"
 	"log"
 	"net"
 	"time"

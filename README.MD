@@ -18,3 +18,27 @@ Can
 * Play ALAC
 * Need to be hardened 
 
+
+### How to build
+
+* Clone the repository 
+  
+* Get Dependencies (without building as there is C dependencies in go-fdkaac)
+
+```
+go get -d 
+```
+
+* Build dependencies (go-fdkacc) and the program 
+
+```
+make 
+```
+
+### Dependencies 
+
+You need to have binutils installed, gcc compiler and go runtime installed to build this program
+
+## Compilation for RASPI
+
+TODO 

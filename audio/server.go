@@ -3,7 +3,7 @@ package audio
 import (
 	"encoding/binary"
 	"errors"
-	"github.com/winlinvip/go-fdkaac"
+	aac "github.com/albanseurat/go-fdkaac"
 	"goplay2/globals"
 	"goplay2/ptp"
 	"io"
@@ -13,7 +13,7 @@ import (
 )
 
 type Server struct {
-	aacDecoder     *fdkaac.AacDecoder
+	aacDecoder     *aac.AacDecoder
 	ringBuffer     *Ring
 	sharedKey      []byte
 	player         *Player
@@ -32,7 +32,7 @@ func NewServer(clock *ptp.VirtualClock, bufferSize int) *Server {
 		log.Panicf("alac debugger not available : %v", err)
 	}*/
 
-	aacDecoder := fdkaac.NewAacDecoder()
+	aacDecoder := aac.NewAacDecoder()
 
 	asc := []byte{0x12, 0x10}
 	if err := aacDecoder.InitRaw(asc); err != nil {
