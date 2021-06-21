@@ -3,8 +3,9 @@ package globals
 type ControlMessageType uint8
 
 type ControlMessage struct {
-	MType ControlMessageType
-	Value int64
+	MType  ControlMessageType
+	Param1 int64
+	Param2 int64
 }
 
 const (

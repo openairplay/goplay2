@@ -105,7 +105,11 @@ func (r *Rstp) OnFlushBuffered(req *rtsp.Request) (*rtsp.Response, error) {
 			return &rtsp.Response{StatusCode: rtsp.StatusBadRequest}, nil
 		}
 		if s, found := r.streams[req.Path]; found {
-			s.Flush(content["flushUntilSeq"].(uint64))
+			if fromSeq, found := content["flushFromSeq"] ; found {
+				s.Flush(fromSeq.(uint64), content["flushUntilSeq"].(uint64))
+			} else {
+				s.Flush(0, content["flushUntilSeq"].(uint64))
+			}
 		}
 		log.Printf("%v\n", content)
 	}

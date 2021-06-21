@@ -9,7 +9,7 @@ Can
 * be paired **manually** on IOS 14.x with a Homepod Mini
 * Play AAC 44100 with buffered audio
 * Play/Pause/Stop/Seek
-* PTP supported and sync with homepod mini BUT **need improvments** 
+* PTP supported and sync with homepod mini BUT **need improvements** 
 
 ## Next Step 
 
@@ -18,6 +18,3 @@ Can
 * Play ALAC
 * Need to be hardened 
 
-## Bugs
-
-* Replace Ring Channel with linked list structures

@@ -5,8 +5,6 @@ import (
 	"time"
 )
 
-// TODO : LEAK in MAP => should be completly redone
-
 type mData struct {
 	sendTS    time.Time
 	receiveTS time.Time

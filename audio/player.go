@@ -22,11 +22,11 @@ type Player struct {
 	clock          *ptp.VirtualClock
 	Status         PlaybackStatus
 	stream         *portaudio.Stream
-	ringBuffer     *RingBuffer
+	ringBuffer     *Ring
 	nextStart      int64
 }
 
-func NewPlayer(clock *ptp.VirtualClock, ring *RingBuffer) *Player {
+func NewPlayer(clock *ptp.VirtualClock, ring *Ring) *Player {
 	return &Player{
 		clock:          clock,
 		ControlChannel: make(chan globals.ControlMessage, 100),
@@ -36,8 +36,9 @@ func NewPlayer(clock *ptp.VirtualClock, ring *RingBuffer) *Player {
 	}
 }
 
-func (p *Player) Run() {
+func (p *Player) Run(s *Server) {
 	var err error
+	defer s.Close()
 	if err := portaudio.Initialize(); err != nil {
 		log.Fatalln("PortAudio init error:", err)
 	}
@@ -65,9 +66,9 @@ func (p *Player) Run() {
 			case globals.START:
 				p.Status = STARTED
 			case globals.WAIT:
-				p.nextStart = msg.Value
+				p.nextStart = msg.Param1
 			case globals.SKIP:
-				p.skipUntil(msg.Value)
+				p.skipUntil(msg.Param1, msg.Param2)
 			case globals.STOP:
 				return
 			}
@@ -81,8 +82,8 @@ func (p *Player) Run() {
 						return
 					}
 				}
-				frame := <-p.ringBuffer.outputChannel
-				err = binary.Read(bytes.NewReader(frame.pcmData), binary.LittleEndian, out)
+				frame := p.ringBuffer.Pop()
+				err = binary.Read(bytes.NewReader(frame.(*PCMFrame).pcmData), binary.LittleEndian, out)
 				if err != nil {
 					log.Printf("error reading data : %v\n", err)
 					return
@@ -96,15 +97,14 @@ func (p *Player) Run() {
 	}
 }
 
-func (p *Player) skipUntil(sequenceId int64) {
+func (p *Player) skipUntil(fromSeq int64, UntilSeq int64) {
 	if p.Status == PLAYING {
-		log.Printf("Stopping streaming for skipping to sequence %v\n", sequenceId)
+		log.Printf("Stopping streaming for skipping to sequence %v\n", UntilSeq)
 		p.stream.Stop()
 		p.Status = STOPPED
 	}
-	for frame := range p.ringBuffer.outputChannel {
-		if frame.SequenceNumber > uint32(sequenceId) {
-			return
-		}
-	}
+	p.ringBuffer.Flush(func(value interface{}) bool {
+		frame := value.(*PCMFrame)
+		return frame.SequenceNumber < uint32(fromSeq) || frame.SequenceNumber > uint32(UntilSeq)
+	})
 }
