@@ -3,9 +3,9 @@ package audio
 import (
 	"bytes"
 	"encoding/binary"
-	"github.com/gordonklaus/portaudio"
 	"goplay2/globals"
 	"goplay2/ptp"
+	"io"
 	"log"
 )
 
@@ -17,11 +17,19 @@ const (
 	PLAYING
 )
 
+type Stream interface {
+	io.Closer
+	Init() error
+	Write([]int16) error
+	Start() error
+	Stop() error
+}
+
 type Player struct {
 	ControlChannel chan globals.ControlMessage
 	clock          *ptp.VirtualClock
 	Status         PlaybackStatus
-	stream         *portaudio.Stream
+	stream         Stream
 	ringBuffer     *Ring
 	nextStart      int64
 }
@@ -30,6 +38,7 @@ func NewPlayer(clock *ptp.VirtualClock, ring *Ring) *Player {
 	return &Player{
 		clock:          clock,
 		ControlChannel: make(chan globals.ControlMessage, 100),
+		stream :        NewStream(),
 		Status:         STOPPED,
 		ringBuffer:     ring,
 		nextStart:      0,
@@ -39,19 +48,12 @@ func NewPlayer(clock *ptp.VirtualClock, ring *Ring) *Player {
 func (p *Player) Run(s *Server) {
 	var err error
 	defer s.Close()
-	if err := portaudio.Initialize(); err != nil {
-		log.Fatalln("PortAudio init error:", err)
-	}
-	defer portaudio.Terminate()
-
-	out := make([]int16, 2048)
-	// TODO : get the framePerBuffer from setup
-	p.stream, err = portaudio.OpenDefaultStream(0, 2, 44100, 1024, &out)
-	if err != nil {
-		log.Println("PortAudio Stream opened false ", err)
-		return
+	if err := p.stream.Init(); err != nil {
+		log.Fatalln("Audio Stream init error:", err)
 	}
 	defer p.stream.Close()
+	out := make([]int16, 2048)
+
 
 	for {
 		select {
@@ -88,7 +90,7 @@ func (p *Player) Run(s *Server) {
 					log.Printf("error reading data : %v\n", err)
 					return
 				}
-				if err = p.stream.Write(); err != nil {
+				if err = p.stream.Write(out); err != nil {
 					log.Printf("error writing audio :%v\n", err)
 					return
 				}
