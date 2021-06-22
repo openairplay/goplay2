@@ -38,7 +38,7 @@ func NewPlayer(clock *ptp.VirtualClock, ring *Ring) *Player {
 	return &Player{
 		clock:          clock,
 		ControlChannel: make(chan globals.ControlMessage, 100),
-		stream :        NewStream(),
+		stream:         NewStream(),
 		Status:         STOPPED,
 		ringBuffer:     ring,
 		nextStart:      0,
@@ -53,7 +53,6 @@ func (p *Player) Run(s *Server) {
 	}
 	defer p.stream.Close()
 	out := make([]int16, 2048)
-
 
 	for {
 		select {

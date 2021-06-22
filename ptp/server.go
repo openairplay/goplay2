@@ -57,10 +57,12 @@ func (s *Server) Serve() {
 	var err error
 	s.genConn, err = net.ListenUDP("udp", &net.UDPAddr{Port: 320})
 	if err != nil {
+		log.Printf("Erreur while listening port 320 %v\n", err)
 		return
 	}
 	s.eventConn, err = net.ListenUDP("udp", &net.UDPAddr{Port: 319})
 	if err != nil {
+		log.Printf("Erreur while listening port 319 %v\n", err)
 		return
 	}
 
