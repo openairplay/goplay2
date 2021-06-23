@@ -9,7 +9,7 @@ import (
 
 type AlsaSteam struct {
 	out    []int16
-	device *goalsa.PlaybackDevice
+	device *alsa.PlaybackDevice
 }
 
 func NewStream() Stream {
@@ -18,7 +18,7 @@ func NewStream() Stream {
 
 func (s *AlsaSteam) Init() error {
 	var err error
-	if s.device, err = goalsa.NewPlaybackDevice("pcm.default", 2, goalsa.FormatS16LE, 44100, goalsa.BufferParams{})
+	if s.device, err = alsa.NewPlaybackDevice("pcm.default", 2, alsa.FormatS16LE, 44100, alsa.BufferParams{})
 		err != nil {
 		return err
 	}
@@ -31,7 +31,7 @@ func (s *AlsaSteam) Close() error {
 }
 
 func (s *AlsaSteam) Start() error {
-	return nil
+	return s.device.Prepare()
 }
 
 func (s *AlsaSteam) Stop() error {
@@ -39,11 +39,7 @@ func (s *AlsaSteam) Stop() error {
 }
 
 func (s *AlsaSteam) Write(output []int16) error {
-	ret , err := s.device.Write(output)
-	if err == goalsa.ErrUnderrun {
-		// the lib, after an underrun re-prepare the stream, skip the frame
-		return nil
-	}
+	ret, err := s.device.Write(output)
 	if err != nil {
 		return err
 	}
