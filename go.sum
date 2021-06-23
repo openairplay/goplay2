@@ -2,13 +2,13 @@ github.com/albanseurat/go-fdkaac v1.0.3 h1:4Hs//CPx1cvskMvxEcJrVel8iBgFtEbrUzGph
 github.com/albanseurat/go-fdkaac v1.0.3/go.mod h1:pTwqib2y8Q6Ds5bFvEdJ48pZyrS/sDqLWVQy53f8cgc=
 github.com/albanseurat/go-ptp v0.0.0-20210621114405-a6d76e8bd928 h1:J29RmFQeULXbQGQuOaOIflJUArCsa7zUkeVgby5bDuM=
 github.com/albanseurat/go-ptp v0.0.0-20210621114405-a6d76e8bd928/go.mod h1:QOSbNB21golIacoQMnMeYwwfLxU1eTKCsvbfiSBsahM=
+github.com/albanseurat/goalsa v0.3.3 h1:PqZU0e/4s9V6J6vRkrNwzGoJwibzBrhDRlynZdY+wAk=
+github.com/albanseurat/goalsa v0.3.3/go.mod h1:NPFA52XtNUtj3CjUFc5/6AoM0iJL8fbjqLjtd0fI5lc=
 github.com/brutella/dnssd v1.2.0/go.mod h1:FpJqlQ8+XU6w1vbnG1zJiQPTRE5fvQIRdrcBojMVuuQ=
 github.com/brutella/hc v1.2.4 h1:dQjLi4bjUbKG4436N7WXH6W7iHQgfnCceE9DxyOuSnA=
 github.com/brutella/hc v1.2.4/go.mod h1:TPPdombm3gA/2fsSON6ct2km7z7Vi8lQNqE+fzuDHQM=
 github.com/cenkalti/backoff v2.2.1+incompatible h1:tNowT99t7UNflLxfYYSlKYsBpXdEet03Pg2g16Swow4=
 github.com/cenkalti/backoff v2.2.1+incompatible/go.mod h1:90ReRw6GdpyfrHakVjL/QHaoyV4aDUVVkXQJJJ3NXXM=
-github.com/cocoonlife/goalsa v0.0.0-20160812085113-b711ae6f3eff h1:lzYv33TtN2HYFu6EwXE+IZb+P73rYlnZc7p6Ey0lAMs=
-github.com/cocoonlife/goalsa v0.0.0-20160812085113-b711ae6f3eff/go.mod h1:5aLO409bJnd+jCw0t/SB/DhHkVBhPAE31lnHJnYQxy0=
 github.com/cocoonlife/testify v0.0.0-20160218172820-792cc1faeb64 h1:LjPYdzoFSAJ5Tr/ElL8kzTJghXgpnOjJVbgd1UvZB1o=
 github.com/cocoonlife/testify v0.0.0-20160218172820-792cc1faeb64/go.mod h1:LoCAz53rbPcqs8Da2BjB/yDy4gxMtiSQmqnYI/DGH+U=
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
