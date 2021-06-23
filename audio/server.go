@@ -39,8 +39,8 @@ func NewServer(clock *ptp.VirtualClock, bufferSize int) *Server {
 		log.Panicf("init decoder failed, err is %s", err)
 	}
 
-	// Divided by 100 -> average size of a RTP packet
-	buffer := New(bufferSize / 100)
+	// Divided by 100 -> average size of a RTP packet (reduce the size to reduce huge CPU decoding at startup -> raspberry 1)
+	buffer := New(bufferSize / 500)
 
 	return &Server{
 		aacDecoder:   aacDecoder,

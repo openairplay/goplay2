@@ -41,8 +41,8 @@ func (s *AlsaSteam) Stop() error {
 func (s *AlsaSteam) Write(output []int16) error {
 	ret , err := s.device.Write(output)
 	if err == goalsa.ErrUnderrun {
-		// the lib, after an underrun re-prepare the stream
-		ret, err = s.device.Write(output)
+		// the lib, after an underrun re-prepare the stream, skip the frame
+		return nil
 	}
 	if err != nil {
 		return err
