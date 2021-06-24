@@ -98,7 +98,7 @@ func (s *Server) decodeToPcm(reader io.Reader) (*PCMFrame, error) {
 
 func (s *Server) SetRateAnchorTime(rtpTime uint32, networkTime time.Time) {
 	// TODO send message for SKIP to TIMESTAMP (find the sequence and then send the sequence from timetamp in buffer
-	s.player.ControlChannel <- globals.ControlMessage{MType: globals.WAIT, Param1: networkTime.Unix()}
+	s.player.ControlChannel <- globals.ControlMessage{MType: globals.WAIT, Param1: networkTime.UnixNano()}
 	s.player.ControlChannel <- globals.ControlMessage{MType: globals.START}
 }
 

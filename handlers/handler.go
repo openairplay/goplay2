@@ -7,7 +7,6 @@ import (
 	"goplay2/ptp"
 	"goplay2/rtsp"
 	"log"
-	"time"
 )
 
 type Rstp struct {
@@ -25,7 +24,7 @@ func (r *Rstp) OnConnOpen(conn *rtsp.Conn) {
 }
 
 func (r *Rstp) OnRequest(conn *rtsp.Conn, request *rtsp.Request) {
-	log.Printf("request received : %s %s body %d at %s", request.Method, request.URL, len(request.Body), time.Now().Format("2006-01-02T15:04:05.999999999Z07:00"))
+	log.Printf("request received : %s %s body %d at %v", request.Method, request.URL, len(request.Body), r.clock.Now().UnixNano())
 }
 
 func (r *Rstp) Handle(conn *rtsp.Conn, req *rtsp.Request) (*rtsp.Response, error) {
@@ -55,5 +54,5 @@ func (r *Rstp) Handle(conn *rtsp.Conn, req *rtsp.Request) (*rtsp.Response, error
 }
 
 func (r *Rstp) OnResponse(conn *rtsp.Conn, resp *rtsp.Response) {
-	log.Printf("response sent : body %d at %s", len(resp.Body), time.Now().Format("2006-01-02T15:04:05.999999999Z07:00"))
+	log.Printf("response sent : body %d at %v", len(resp.Body), r.clock.Now().UnixNano())
 }

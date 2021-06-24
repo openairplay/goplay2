@@ -76,10 +76,10 @@ func (p *Player) Run(s *Server) {
 				return
 			}
 		default:
-			if p.Status != STOPPED && p.clock.Now().Unix() >= p.nextStart {
+			if p.Status != STOPPED && p.clock.Now().UnixNano() >= p.nextStart {
 				if p.Status == STARTED {
 					p.Status = PLAYING
-					log.Printf("%v Starting streaming with anchor time %v at %v\n", time.Now(), p.nextStart, p.clock.Now().Unix())
+					log.Printf("%v Starting streaming with anchor time %v at %v\n", time.Now(), p.nextStart, p.clock.Now().UnixNano())
 					err = p.stream.Start()
 					if err != nil {
 						log.Printf("error while starting flow : %v\n", err)
