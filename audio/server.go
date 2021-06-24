@@ -22,16 +22,6 @@ type Server struct {
 
 func NewServer(clock *ptp.VirtualClock, bufferSize int) *Server {
 
-	/*cookie := []byte{
-		0x00, 0x00, 0x00, 0x24, 0x61, 0x6c, 0x61, 0x63, 0x00, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x01, 0x60, 0x00, 0x10, 0x28, 0x0a, 0x0e, 0x02, 0x00, 0xff,
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xac, 0x44}
-
-	decoder, err := alac.NewDecoder(cookie)
-	if err != nil {
-		log.Panicf("alac debugger not available : %v", err)
-	}*/
-
 	aacDecoder := aac.NewAacDecoder()
 
 	asc := []byte{0x12, 0x10}
@@ -39,13 +29,13 @@ func NewServer(clock *ptp.VirtualClock, bufferSize int) *Server {
 		log.Panicf("init decoder failed, err is %s", err)
 	}
 
-	// Divided by 100 -> average size of a RTP packet (reduce the size to reduce huge CPU decoding at startup -> raspberry 1)
-	buffer := New(bufferSize / 500)
+	// Divided by 100 -> average size of a RTP packet
+	buffer := New(bufferSize / 100)
 
 	return &Server{
-		aacDecoder:   aacDecoder,
-		ringBuffer:   buffer,
-		player:       NewPlayer(clock, buffer),
+		aacDecoder: aacDecoder,
+		ringBuffer: buffer,
+		player:     NewPlayer(clock, buffer),
 	}
 }
 
@@ -68,6 +58,7 @@ func (s *Server) Setup(sharedKey []byte) (int, error) {
 
 func (s *Server) control(l net.Listener) {
 	defer l.Close()
+	defer s.ringBuffer.Reset()
 	conn, err := l.Accept()
 	if err != nil {
 		log.Println("Error accepting: ", err.Error())
@@ -84,7 +75,7 @@ func (s *Server) control(l net.Listener) {
 		default:
 			frame, err := s.decodeToPcm(conn)
 			if err != nil {
-				log.Printf("error copying data into ring buffer %v", err)
+				log.Printf("error decoding to pcm %v", err)
 				return
 			}
 			s.ringBuffer.Push(frame)

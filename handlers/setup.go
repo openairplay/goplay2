@@ -42,7 +42,7 @@ type setupSteamsResponse struct {
 	Streams []setupStream `plist:"streams"`
 }
 
-const BufferSize = 8388608
+const BufferSize = 838860
 
 func (r *Rstp) OnSetupWeb(req *rtsp.Request) (*rtsp.Response, error) {
 
@@ -64,7 +64,6 @@ func (r *Rstp) OnSetupWeb(req *rtsp.Request) (*rtsp.Response, error) {
 						TypeStream: content.Streams[0].Type,
 					}},
 				}
-
 				if body, err := plist.Marshal(*setupStreamsResponse, plist.AutomaticFormat); err == nil {
 					return &rtsp.Response{StatusCode: rtsp.StatusOK, Header: rtsp.Header{
 						"Content-Type": rtsp.HeaderValue{"application/x-apple-binary-plist"},

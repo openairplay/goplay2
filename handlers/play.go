@@ -91,9 +91,16 @@ func (r *Rstp) OnCommand(req *rtsp.Request) (*rtsp.Response, error) {
 }
 
 func (r *Rstp) OnTeardownWeb(req *rtsp.Request) (*rtsp.Response, error) {
+	var content map[string]interface{}
+	if _, err := plist.Unmarshal(req.Body, &content); err != nil {
+		return &rtsp.Response{StatusCode: rtsp.StatusBadRequest}, nil
+	}
 	if s, found := r.streams[req.Path]; found {
 		s.Teardown()
-		delete(r.streams, req.Path)
+		// if streams is present we pause otherwise we drop the stream
+		if _, stream := content["streams"]; !stream {
+			delete(r.streams, req.Path)
+		}
 	}
 	return &rtsp.Response{StatusCode: rtsp.StatusOK}, nil
 }
@@ -105,7 +112,7 @@ func (r *Rstp) OnFlushBuffered(req *rtsp.Request) (*rtsp.Response, error) {
 			return &rtsp.Response{StatusCode: rtsp.StatusBadRequest}, nil
 		}
 		if s, found := r.streams[req.Path]; found {
-			if fromSeq, found := content["flushFromSeq"] ; found {
+			if fromSeq, found := content["flushFromSeq"]; found {
 				s.Flush(fromSeq.(uint64), content["flushUntilSeq"].(uint64))
 			} else {
 				s.Flush(0, content["flushUntilSeq"].(uint64))

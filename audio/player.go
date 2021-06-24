@@ -7,6 +7,7 @@ import (
 	"goplay2/ptp"
 	"io"
 	"log"
+	"time"
 )
 
 type PlaybackStatus uint8
@@ -71,12 +72,14 @@ func (p *Player) Run(s *Server) {
 			case globals.SKIP:
 				p.skipUntil(msg.Param1, msg.Param2)
 			case globals.STOP:
+				log.Printf("Stopping audio player")
 				return
 			}
 		default:
 			if p.Status != STOPPED && p.clock.Now().Unix() >= p.nextStart {
 				if p.Status == STARTED {
 					p.Status = PLAYING
+					log.Printf("%v Starting streaming with anchor time %v at %v\n", time.Now(), p.nextStart, p.clock.Now().Unix())
 					err = p.stream.Start()
 					if err != nil {
 						log.Printf("error while starting flow : %v\n", err)

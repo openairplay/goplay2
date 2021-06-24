@@ -73,18 +73,18 @@ func (s *Server) handleRstpConnection(conn *Conn) {
 	for {
 		request, err := parseRequest(s.br)
 		if err != nil {
-			log.Printf("Error on RSTP server %v \n", err)
+			log.Printf("Error parsing RSTP request %v \n", err)
 			return
 		}
 		s.h.OnRequest(conn, request)
 		response, err := s.h.Handle(conn, request)
 		if err != nil {
-			log.Printf("Error on RSTP server %v \n", err)
+			log.Printf("Error handling RSTP request %v \n", err)
 			return
 		}
 		err = s.flushResponse(conn, request, response)
 		if err != nil {
-			log.Printf("Error on RSTP server %v \n", err)
+			log.Printf("Error flusing RSTP response %v \n", err)
 			return
 		}
 	}
