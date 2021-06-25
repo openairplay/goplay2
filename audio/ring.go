@@ -77,13 +77,17 @@ func (r *Ring) Flush(predicate func (interface{}) bool) int {
 	}
 	writerPos := 0
 	result := make([]interface{}, len(r.buf))
-	for _,v := range r.buf {
-		if v == nil {
-			break
-		}
-		if predicate(v) {
+	pos := r.r + 1
+	max := r.w
+	for pos != max {
+		v := r.buf[pos]
+		if v != nil && predicate(v) {
 			result[writerPos] = v
 			writerPos++
+		}
+		pos++
+		if pos == r.size {
+			pos = 0
 		}
 	}
 	r.buf = result
