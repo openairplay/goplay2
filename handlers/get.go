@@ -11,28 +11,44 @@ type getInfoContent struct {
 	Qualifier []string `plist:"qualifier"`
 }
 
+type audioLatenciesResponse struct {
+	AudioType           string `plist:"audioType"`
+	InputLatencyMicros  uint64 `plist:"inputLatencyMicros"`
+	OutputLatencyMicros uint64 `plist:"outputLatencyMicros"`
+	Type                uint64 `plist:"type"`
+}
+
 type getInfoResponse struct {
-	DeviceId        string `plist:"deviceID"`
-	Features        uint64 `plist:"features"`
-	Pi              string `plist:"pi"`
-	Psi             string `plist:"psi"`
-	ProtocolVersion string `plist:"protocolVersion"`
-	Sdk             string `plist:"sdk"`
-	SourceVersion   string `plist:"sourceVersion"`
-	StatusFlags     uint64 `plist:"statusFlags"`
+	AudioLatencies  []audioLatenciesResponse `plist:"audioLatencies"`
+	DeviceId        string                   `plist:"deviceID"`
+	Features        uint64                   `plist:"features"`
+	Pi              string                   `plist:"pi"`
+	Psi             string                   `plist:"psi"`
+	ProtocolVersion string                   `plist:"protocolVersion"`
+	Sdk             string                   `plist:"sdk"`
+	SourceVersion   string                   `plist:"sourceVersion"`
+	StatusFlags     uint64                   `plist:"statusFlags"`
 }
 
 func NewGetInfoResponse(deviceId string, features uint64, pi string,
 	psi string, sourceVersion string) *getInfoResponse {
 
-	return &getInfoResponse{DeviceId: deviceId,
+	latencies := [1]audioLatenciesResponse{{
+		InputLatencyMicros:  0,
+		OutputLatencyMicros: 400000,
+		Type:                100,
+	}}
+
+	return &getInfoResponse{
+		AudioLatencies:  latencies[:],
+		DeviceId:        deviceId,
 		Features:        features,
 		Pi:              pi,
 		Psi:             psi,
 		ProtocolVersion: "1.1",
 		Sdk:             "AirPlay;2.0.2",
 		SourceVersion:   sourceVersion,
-		StatusFlags:     4,
+		StatusFlags:     0x4,
 	}
 }
 
