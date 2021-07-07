@@ -3,7 +3,7 @@ module goplay2
 go 1.16
 
 require (
-	github.com/albanseurat/go-fdkaac v1.0.3
+	github.com/albanseurat/go-fdkaac v1.0.5
 	github.com/albanseurat/go-ptp v0.0.0-20210621114405-a6d76e8bd928
 	github.com/albanseurat/goalsa v0.9.0
 	github.com/brutella/hc v1.2.4
