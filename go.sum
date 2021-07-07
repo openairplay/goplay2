@@ -1,5 +1,7 @@
 github.com/albanseurat/go-fdkaac v1.0.3 h1:4Hs//CPx1cvskMvxEcJrVel8iBgFtEbrUzGphTtoYdg=
 github.com/albanseurat/go-fdkaac v1.0.3/go.mod h1:pTwqib2y8Q6Ds5bFvEdJ48pZyrS/sDqLWVQy53f8cgc=
+github.com/albanseurat/go-fdkaac v1.0.5 h1:H19q8Cnb+5ypPuiNMTs7xPsiv5vv8i0N2wJldSKiolw=
+github.com/albanseurat/go-fdkaac v1.0.5/go.mod h1:pTwqib2y8Q6Ds5bFvEdJ48pZyrS/sDqLWVQy53f8cgc=
 github.com/albanseurat/go-ptp v0.0.0-20210621114405-a6d76e8bd928 h1:J29RmFQeULXbQGQuOaOIflJUArCsa7zUkeVgby5bDuM=
 github.com/albanseurat/go-ptp v0.0.0-20210621114405-a6d76e8bd928/go.mod h1:QOSbNB21golIacoQMnMeYwwfLxU1eTKCsvbfiSBsahM=
 github.com/albanseurat/goalsa v0.9.0 h1:jUc/s5cXtiUwat1YDUNn6enNALVXMNcPTUL0jXaDWoU=
