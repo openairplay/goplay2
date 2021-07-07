@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"github.com/grandcat/zeroconf"
+	"goplay2/config"
 	"goplay2/event"
 	"goplay2/handlers"
 	"goplay2/homekit"
@@ -10,29 +11,19 @@ import (
 	"goplay2/rtsp"
 	"log"
 	"net"
-	"os"
 	"strings"
 	"sync"
 )
-
-func setLog() {
-	file, err := os.OpenFile("goplay.log", os.O_WRONLY|os.O_CREATE, 0600)
-	if err != nil {
-		panic(err)
-	}
-	log.SetOutput(file)
-}
 
 func main() {
 	var ifName string
 	var deviceName string
 	var delay int64
 
-	//setLog()
-
 	flag.StringVar(&ifName, "i", "eth0", "Specify interface")
 	flag.Int64Var(&delay, "delay", 50, "Specify hardware delay in ms (useful on slow computer)")
 	flag.StringVar(&deviceName, "n", "goplay", "Specify device name")
+	flag.StringVar(&config.Config.AlsaPortName, "alsa", "pcm.default", "Specify Alsa Device - Linux only")
 	flag.Parse() // after declaring flags we need to call it
 
 	iFace, err := net.InterfaceByName(ifName)

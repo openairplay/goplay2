@@ -80,7 +80,9 @@ Ex: It takes around 60ms on my mac to launch the audio stream at the **Anchor Ti
 
 `n` (name) used as accessory name (Bonjour) 
 
+`alsa` (alsa port name) to replace default pcm port (default : pcm.default)
+
 ```shell
-./goplay2 -delay -60 -i en0 -n aiwa
+./goplay2 -alsa pcm.default -i en0 -n aiwa
 ```
 

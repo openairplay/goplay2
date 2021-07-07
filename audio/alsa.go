@@ -5,6 +5,7 @@ package audio
 import (
 	"errors"
 	"github.com/albanseurat/goalsa"
+	"goplay2/config"
 )
 
 type AlsaSteam struct {
@@ -18,7 +19,7 @@ func NewStream() Stream {
 
 func (s *AlsaSteam) Init() error {
 	var err error
-	if s.device, err = alsa.NewPlaybackDevice("pcm.default", 2, alsa.FormatS16LE, 44100, alsa.BufferParams{})
+	if s.device, err = alsa.NewPlaybackDevice(config.Config.AlsaPortName, 2, alsa.FormatS16LE, 44100, alsa.BufferParams{})
 		err != nil {
 		return err
 	}
