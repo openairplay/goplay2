@@ -6,6 +6,8 @@ github.com/albanseurat/go-ptp v0.0.0-20210621114405-a6d76e8bd928 h1:J29RmFQeULXb
 github.com/albanseurat/go-ptp v0.0.0-20210621114405-a6d76e8bd928/go.mod h1:QOSbNB21golIacoQMnMeYwwfLxU1eTKCsvbfiSBsahM=
 github.com/albanseurat/goalsa v0.9.0 h1:jUc/s5cXtiUwat1YDUNn6enNALVXMNcPTUL0jXaDWoU=
 github.com/albanseurat/goalsa v0.9.0/go.mod h1:LjIvihpDWbsBJn3rSgTQ+nIJkbLScFGsCUwyroytMNQ=
+github.com/albanseurat/goalsa v0.10.0 h1:WnZiB5OimJYgRrTY1JDS9+ho8/MQfZ06kmMB6Fht2lo=
+github.com/albanseurat/goalsa v0.10.0/go.mod h1:LjIvihpDWbsBJn3rSgTQ+nIJkbLScFGsCUwyroytMNQ=
 github.com/brutella/dnssd v1.2.0/go.mod h1:FpJqlQ8+XU6w1vbnG1zJiQPTRE5fvQIRdrcBojMVuuQ=
 github.com/brutella/hc v1.2.4 h1:dQjLi4bjUbKG4436N7WXH6W7iHQgfnCceE9DxyOuSnA=
 github.com/brutella/hc v1.2.4/go.mod h1:TPPdombm3gA/2fsSON6ct2km7z7Vi8lQNqE+fzuDHQM=
