@@ -47,5 +47,11 @@ func (s *PortAudioStream) Stop() error {
 
 func (s *PortAudioStream) Write(output []int16) error {
 	copy(s.out, output)
-	return s.stream.Write()
+	err := s.stream.Write()
+
+	if err == portaudio.OutputUnderflowed {
+		return underflow
+	} else {
+		return err
+	}
 }

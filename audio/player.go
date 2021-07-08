@@ -3,6 +3,7 @@ package audio
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"goplay2/globals"
 	"goplay2/ptp"
 	"io"
@@ -17,6 +18,8 @@ const (
 	STARTED
 	PLAYING
 )
+
+var underflow = errors.New("audio underflow")
 
 type Stream interface {
 	io.Closer
@@ -94,7 +97,14 @@ func (p *Player) Run(s *Server) {
 				}
 				if err = p.stream.Write(out); err != nil {
 					log.Printf("error writing audio :%v\n", err)
-					return
+					if err != underflow {
+						return
+					}
+					if err := p.stream.Stop(); err != nil {
+						log.Printf("error stoping audio :%v\n", err)
+						return
+					}
+					p.Status = STARTED
 				}
 			}
 		}
