@@ -89,8 +89,8 @@ func (p *Player) Run(s *Server) {
 						return
 					}
 				}
-				frame := p.ringBuffer.Pop()
-				err = binary.Read(bytes.NewReader(frame.(*PCMFrame).pcmData), binary.LittleEndian, out)
+				frame := p.ringBuffer.Pop().(*PCMFrame)
+				err = binary.Read(bytes.NewReader(frame.pcmData), binary.LittleEndian, out)
 				if err != nil {
 					log.Printf("error reading data : %v\n", err)
 					return

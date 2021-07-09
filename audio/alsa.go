@@ -19,8 +19,7 @@ func NewStream() Stream {
 
 func (s *AlsaSteam) Init() error {
 	var err error
-	if s.device, err = alsa.NewPlaybackDevice(config.Config.AlsaPortName, 2, alsa.FormatS16LE, 44100, alsa.BufferParams{})
-		err != nil {
+	if s.device, err = alsa.NewPlaybackDevice(config.Config.AlsaPortName, 2, alsa.FormatS16LE, 44100, alsa.BufferParams{}); err != nil {
 		return err
 	}
 	return nil
@@ -41,6 +40,9 @@ func (s *AlsaSteam) Stop() error {
 
 func (s *AlsaSteam) Write(output []int16) error {
 	ret, err := s.device.Write(output)
+	if err == alsa.ErrUnderrun {
+		return underflow
+	}
 	if err != nil {
 		return err
 	}
