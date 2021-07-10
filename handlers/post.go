@@ -8,11 +8,11 @@ func (r *Rstp) OnPostWeb(conn *rtsp.Conn, req *rtsp.Request) (*rtsp.Response, er
 	case "pair-setup":
 		return r.OnPairSetup(conn, req)
 	case "pair-verify":
-		return r.OnPairVerify(conn,req)
+		return r.OnPairVerify(conn, req)
 	case "pair-add":
-		return r.OnPairAdd(req)
+		return r.OnPairAdd(conn, req)
 	case "pair-list":
-		return r.OnPairList(req)
+		return r.OnPairList(conn, req)
 	case "configure":
 		return r.OnPairConfigure(req)
 	case "fp-setup":

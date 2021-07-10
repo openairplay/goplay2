@@ -57,14 +57,14 @@ func (r *Rstp) OnSetupWeb(req *rtsp.Request) (*rtsp.Response, error) {
 				if err != nil {
 					return &rtsp.Response{StatusCode: rtsp.StatusInternalServerError}, nil
 				}
-				setupStreamsResponse := &setupSteamsResponse{
+				setupStreamsResponse := setupSteamsResponse{
 					Streams: []setupStream{{
 						BufferSize: BufferSize,
 						DataPort:   uint16(port),
 						TypeStream: content.Streams[0].Type,
 					}},
 				}
-				if body, err := plist.Marshal(*setupStreamsResponse, plist.AutomaticFormat); err == nil {
+				if body, err := plist.Marshal(setupStreamsResponse, plist.AutomaticFormat); err == nil {
 					return &rtsp.Response{StatusCode: rtsp.StatusOK, Header: rtsp.Header{
 						"Content-Type": rtsp.HeaderValue{"application/x-apple-binary-plist"},
 					}, Body: body}, nil

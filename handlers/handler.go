@@ -1,7 +1,11 @@
 package handlers
 
 import (
+	"fmt"
+	"github.com/brutella/hc/db"
 	"github.com/brutella/hc/hap"
+	"github.com/brutella/hc/hap/pair"
+	"github.com/brutella/hc/util"
 	"goplay2/audio"
 	"goplay2/homekit"
 	"goplay2/ptp"
@@ -12,10 +16,17 @@ import (
 type Rstp struct {
 	streams map[string]*audio.Server
 	clock   *ptp.VirtualClock
+	pairing *pair.PairingController
 }
 
-func NewRstpHandler(clock *ptp.VirtualClock) *Rstp {
-	return &Rstp{streams: make(map[string]*audio.Server), clock: clock}
+func NewRstpHandler(deviceName string, clock *ptp.VirtualClock) (*Rstp, error) {
+
+	storage, err := util.NewFileStorage(fmt.Sprintf("%s/db", deviceName))
+	if err != nil {
+		return nil, err
+	}
+	ctrl := pair.NewPairingController(db.NewDatabaseWithStorage(storage))
+	return &Rstp{streams: make(map[string]*audio.Server), clock: clock, pairing: ctrl}, nil
 }
 
 func (r *Rstp) OnConnOpen(conn *rtsp.Conn) {

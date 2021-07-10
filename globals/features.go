@@ -40,6 +40,7 @@ const (
 	SupportsSystemPairing                 = 43
 	IsAPValeriaScreenSender               = 44
 	SupportsHKPairingAndAccessControl     = 46
+	SupportsHKPeerManagement              = 47
 	SupportsCoreUtilsPairingAndEncryption = 48
 	SupportsAirPlayVideoV2                = 49
 	MetadataFeatures_3                    = 50
@@ -54,7 +55,6 @@ const (
 	SupportsRFC2198Redundancy             = 61
 )
 
-
 func (flag Features) Set(i int) Features {
 	flag.Value.SetBit(&flag.Value, i, 1)
 	return flag
@@ -66,7 +66,7 @@ func (flag Features) UnSet(i int) Features {
 }
 
 func (flag Features) ToRecord() string {
-	return fmt.Sprintf("0x%x,0x%x", flag.Value.Int64() & 0xffffffff, flag.Value.Int64() >> 32 & 0xffffffff)
+	return fmt.Sprintf("0x%x,0x%x", flag.Value.Int64()&0xffffffff, flag.Value.Int64()>>32&0xffffffff)
 }
 
 func (flag Features) ToUint64() uint64 {
@@ -74,6 +74,5 @@ func (flag Features) ToUint64() uint64 {
 }
 
 func NewFeatures() Features {
-	return Features{ Value: *big.NewInt(0) }
+	return Features{Value: *big.NewInt(0)}
 }
-

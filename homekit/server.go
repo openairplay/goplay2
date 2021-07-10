@@ -10,11 +10,10 @@ import (
 const airportExpressHardcodedPin = "3939"
 
 type server struct {
-	Context hap.Context
+	Context  hap.Context
 	Database db.Database
-	Device hap.SecuredDevice
+	Device   hap.SecuredDevice
 }
-
 
 func NewServer(macAddress string, deviceName string) (*server, error) {
 
@@ -29,8 +28,7 @@ func NewServer(macAddress string, deviceName string) (*server, error) {
 		return nil, err
 	}
 
-	return &server{ Context: hap.NewContextForSecuredDevice(device), Database: database, Device: device }, nil
+	return &server{Context: hap.NewContextForSecuredDevice(device), Database: database, Device: device}, nil
 }
-
 
 var Server *server

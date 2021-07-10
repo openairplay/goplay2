@@ -96,26 +96,32 @@ func (r *Rstp) OnPairVerify(conn *rtsp.Conn, req *rtsp.Request) (*rtsp.Response,
 	return &rtsp.Response{StatusCode: rtsp.StatusOK, Body: body}, nil
 }
 
-func (r *Rstp) OnPairAdd(req *rtsp.Request) (*rtsp.Response, error) {
+func (r *Rstp) OnPairAdd(conn *rtsp.Conn, req *rtsp.Request) (*rtsp.Response, error) {
 
 	if contentType, found := req.Header["Content-Type"]; found && strings.EqualFold(contentType[0], "application/x-apple-binary-plist") {
-		var content map[string]interface{}
-		if _, err := plist.Unmarshal(req.Body, &content); err == nil {
-			log.Printf("Concent : %v\n", content)
+		if container, err := util.NewTLV8ContainerFromReader(bytes.NewReader(req.Body)); err == nil {
+			outputContainer, err := r.pairing.Handle(container)
+			if err != nil {
+				return &rtsp.Response{StatusCode: rtsp.StatusInternalServerError}, nil
+			}
+			return &rtsp.Response{StatusCode: rtsp.StatusOK, Body: outputContainer.BytesBuffer().Bytes()}, nil
 		}
-	}
 
+	}
 	return &rtsp.Response{StatusCode: rtsp.StatusOK}, nil
 }
 
-func (r *Rstp) OnPairList(req *rtsp.Request) (*rtsp.Response, error) {
+func (r *Rstp) OnPairList(conn *rtsp.Conn, req *rtsp.Request) (*rtsp.Response, error) {
 
-	if contentType, found := req.Header["Content-Type"]; found && strings.EqualFold(contentType[0], "application/x-apple-binary-plist") {
-		var content map[string]interface{}
-		if _, err := plist.Unmarshal(req.Body, &content); err == nil {
-			log.Printf("Concent : %v\n", content)
+	/*if contentType, found := req.Header["Content-Type"]; found && strings.EqualFold(contentType[0], "application/x-apple-binary-plist") {
+		if container, err := util.NewTLV8ContainerFromReader(bytes.NewReader(req.Body)); err == nil {
+			outputContainer , err := r.pairing.Handle(container)
+			if err != nil {
+				return &rtsp.Response{StatusCode: rtsp.StatusInternalServerError}, nil
+			}
+			return &rtsp.Response{StatusCode: rtsp.StatusOK, Body: outputContainer.BytesBuffer().Bytes()}, nil
 		}
-	}
+	}*/
 	return &rtsp.Response{StatusCode: rtsp.StatusOK}, nil
 }
 
@@ -124,9 +130,22 @@ func (r *Rstp) OnPairConfigure(req *rtsp.Request) (*rtsp.Response, error) {
 	if contentType, found := req.Header["Content-Type"]; found && strings.EqualFold(contentType[0], "application/x-apple-binary-plist") {
 		var content map[string]interface{}
 		if _, err := plist.Unmarshal(req.Body, &content); err == nil {
-			log.Printf("Concent : %v\n", content)
+			log.Printf("Content : %v\n", content)
 		}
 	}
 
-	return &rtsp.Response{StatusCode: rtsp.StatusOK}, nil
+	config := homekit.Configuration{
+		DeviceName:           homekit.Server.Device.Name(),
+		AccessControlEnabled: false,
+		AccessControlLevel:   0,
+		Identifier:           homekit.Device.Pi.String(),
+		PublicKey:            homekit.Server.Device.PublicKey(),
+	}
+
+	if body, err := plist.Marshal(config, plist.AutomaticFormat); err == nil {
+		return &rtsp.Response{StatusCode: rtsp.StatusOK, Header: rtsp.Header{
+			"Content-Type": rtsp.HeaderValue{"application/x-apple-binary-plist"},
+		}, Body: body}, nil
+	}
+	return &rtsp.Response{StatusCode: rtsp.StatusInternalServerError}, nil
 }

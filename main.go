@@ -58,7 +58,14 @@ func main() {
 	}()
 
 	go func() {
-		rtsp.RunRtspServer(handlers.NewRstpHandler(clock))
+		handler, e := handlers.NewRstpHandler(deviceName, clock)
+		if e != nil {
+			panic(e)
+		}
+		e = rtsp.RunRtspServer(handler)
+		if e != nil {
+			panic(e)
+		}
 		wg.Done()
 	}()
 
