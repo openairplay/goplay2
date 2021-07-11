@@ -13,6 +13,7 @@ type server struct {
 	Context  hap.Context
 	Database db.Database
 	Device   hap.SecuredDevice
+	Name     string
 }
 
 func NewServer(macAddress string, deviceName string) (*server, error) {
@@ -28,7 +29,11 @@ func NewServer(macAddress string, deviceName string) (*server, error) {
 		return nil, err
 	}
 
-	return &server{Context: hap.NewContextForSecuredDevice(device), Database: database, Device: device}, nil
+	return &server{Context: hap.NewContextForSecuredDevice(device),
+		Database: database,
+		Device:   device,
+		Name:     deviceName,
+	}, nil
 }
 
 var Server *server

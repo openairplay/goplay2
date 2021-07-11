@@ -11,6 +11,8 @@ func (r *Rstp) OnPostWeb(conn *rtsp.Conn, req *rtsp.Request) (*rtsp.Response, er
 		return r.OnPairVerify(conn, req)
 	case "pair-add":
 		return r.OnPairAdd(conn, req)
+	case "pair-remove":
+		return r.OnPairRemove(conn, req)
 	case "pair-list":
 		return r.OnPairList(conn, req)
 	case "configure":
