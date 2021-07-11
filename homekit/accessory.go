@@ -35,13 +35,13 @@ func NewAccessory(deviceId string, features globals.Features) *Accessory {
 		Deviceid:  deviceId,
 		Features:  features,
 		flags:     "0x4",
-		model:     "Airplay2-Receiver",
+		model:     "GoPlay2",
 		protovers: "1.1",
 		acl:       "0",
 		rsf:       "0x0",
-		Pi:        UUID{UUID: uuid.New()},
-		Gid:       UUID{UUID: uuid.New()},
-		Psi:       UUID{UUID: uuid.New()},
+		Pi:        UUID{uuid.MustParse("c9f33810-4c86-4651-96f9-7531b79cb410")}, // should be unique by user (generated and saved)
+		Gid:       UUID{uuid.MustParse("c9f33810-4c86-4651-96f9-7531b79cb410")}, // should be unique by user (generated and saved)
+		Psi:       UUID{uuid.MustParse("c9f33810-4c86-4651-96f9-7531b79cb410")}, // should be unique by user (generated and saved)
 		gcgl:      "0",
 		igl:       "0",
 		pk:        "b07727d6f6cd6e08b58ede525ec3cdeaa252ad9f683feb212ef8a205246554e7",
