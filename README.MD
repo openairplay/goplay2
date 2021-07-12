@@ -86,3 +86,5 @@ Ex: It takes around 60ms on my mac to launch the audio stream at the **Anchor Ti
 ./goplay2 -alsa pcm.default -i en0 -n aiwa
 ```
 
+
+By [AlbanSeurat](https://github.com/AlbanSeurat)
