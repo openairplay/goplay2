@@ -6,16 +6,16 @@ This is a **work in progress** Airplay 2 Speaker implementation largely inspired
 
 Can 
 
-* be paired **manually** on IOS 14.x with a Homepod Mini
+* be registered **with the Home App** and be directed by Siri !
 * Play AAC 44100 with buffered audio
 * Play/Pause/Stop/Seek
 * PTP supported and sync with homepod mini
 
 #### Next Step 
 
-* Manage Homekit (break at POST /configure Endpoint)
 * Play ALAC
 * Need to be hardened 
+* Supports Audio UDP (spotify) 
 
 #### Multi Room accuracy 
 
