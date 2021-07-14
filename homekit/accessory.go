@@ -2,10 +2,11 @@ package homekit
 
 import (
 	"fmt"
-	"github.com/google/uuid"
 	"goplay2/globals"
 	"reflect"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 type UUID struct {
@@ -30,6 +31,7 @@ type Accessory struct {
 }
 
 func NewAccessory(deviceId string, features globals.Features) *Accessory {
+	var currentUuid = GetUUID(geviceId)
 	return &Accessory{
 		Srcvers:   "366.0",
 		Deviceid:  deviceId,
@@ -39,9 +41,9 @@ func NewAccessory(deviceId string, features globals.Features) *Accessory {
 		protovers: "1.1",
 		acl:       "0",
 		rsf:       "0x0",
-		Pi:        UUID{uuid.MustParse("c9f33810-4c86-4651-96f9-7531b79cb410")}, // should be unique by user (generated and saved)
-		Gid:       UUID{uuid.MustParse("c9f33810-4c86-4651-96f9-7531b79cb410")}, // should be unique by user (generated and saved)
-		Psi:       UUID{uuid.MustParse("c9f33810-4c86-4651-96f9-7531b79cb410")}, // should be unique by user (generated and saved)
+		Pi:        UUID{currentUuid}, // should be unique by user (generated and saved)
+		Gid:       UUID{currentUuid}, // should be unique by user (generated and saved)
+		Psi:       UUID{currentUuid}, // should be unique by user (generated and saved)
 		gcgl:      "0",
 		igl:       "0",
 		pk:        "b07727d6f6cd6e08b58ede525ec3cdeaa252ad9f683feb212ef8a205246554e7",
