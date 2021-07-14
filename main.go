@@ -31,7 +31,7 @@ func main() {
 		panic(err)
 	}
 	macAddress := strings.ToUpper(iFace.HardwareAddr.String())
-	homekit.Device = homekit.NewAccessory(macAddress, airplayDevice())
+	homekit.Device = homekit.NewAccessory(macAddress, deviceName, airplayDevice())
 	log.Printf("Device %v", homekit.Device)
 	homekit.Server, err = homekit.NewServer(macAddress, deviceName)
 
