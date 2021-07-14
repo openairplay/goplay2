@@ -8,7 +8,7 @@ import (
 )
 
 func GetUUID(deviceName string) uuid.UUID {
-	uuidStore := fmt.Sprintf("./.uuid%s", deviceName)
+	uuidStore := fmt.Sprintf("%s/uuid.cfg", deviceName)
 	content, err := ioutil.ReadFile(uuidStore)
 	if err != nil || len(content) == 0 {
 		newUUID := uuid.New()
