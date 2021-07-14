@@ -30,8 +30,8 @@ type Accessory struct {
 	pk        string
 }
 
-func NewAccessory(deviceId string, features globals.Features) *Accessory {
-	var currentUuid = GetUUID(deviceId)
+func NewAccessory(deviceId string, deviceName string, features globals.Features) *Accessory {
+	var currentUuid = GetUUID(deviceName)
 	return &Accessory{
 		Srcvers:   "366.0",
 		Deviceid:  deviceId,
