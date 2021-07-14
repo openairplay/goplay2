@@ -31,7 +31,7 @@ type Accessory struct {
 }
 
 func NewAccessory(deviceId string, features globals.Features) *Accessory {
-	var currentUuid = GetUUID(geviceId)
+	var currentUuid = GetUUID(deviceId)
 	return &Accessory{
 		Srcvers:   "366.0",
 		Deviceid:  deviceId,
