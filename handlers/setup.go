@@ -2,8 +2,10 @@ package handlers
 
 import (
 	"goplay2/audio"
+	"goplay2/homekit"
 	"goplay2/rtsp"
 	"howett.net/plist"
+	"log"
 	"strings"
 )
 
@@ -20,8 +22,9 @@ type setupRtsp struct {
 }
 
 type peerInfos struct {
-	Addresses []string `plist:"Addresses"`
-	Id        string   `plist:"ID"`
+	Addresses                 []string `plist:"Addresses"`
+	Id                        string   `plist:"ID"`
+	ClockPortMatchingOverride bool     `plist:"SupportsClockPortMatchingOverride""`
 }
 
 type setupEventResponse struct {
@@ -59,11 +62,14 @@ func (r *Rstp) OnSetupWeb(req *rtsp.Request) (*rtsp.Response, error) {
 				}
 				setupStreamsResponse := setupSteamsResponse{
 					Streams: []setupStream{{
-						BufferSize: BufferSize,
-						DataPort:   uint16(port),
-						TypeStream: content.Streams[0].Type,
+						BufferSize:  BufferSize,
+						AudioFormat: content.Streams[0].AudioFormat,
+						DataPort:    uint16(port),
+						ControlPort: 60003,
+						TypeStream:  content.Streams[0].Type,
 					}},
 				}
+				log.Printf("Response : %v", setupStreamsResponse)
 				if body, err := plist.Marshal(setupStreamsResponse, plist.AutomaticFormat); err == nil {
 					return &rtsp.Response{StatusCode: rtsp.StatusOK, Header: rtsp.Header{
 						"Content-Type": rtsp.HeaderValue{"application/x-apple-binary-plist"},
@@ -72,9 +78,12 @@ func (r *Rstp) OnSetupWeb(req *rtsp.Request) (*rtsp.Response, error) {
 			}
 		} else {
 			r.streams[req.Path] = audio.NewServer(r.clock, BufferSize)
-
-			setupEventResponse := &setupEventResponse{EventPort: 60003, TimingPort: 0}
-			if body, err := plist.Marshal(*setupEventResponse, plist.AutomaticFormat); err == nil {
+			setupEventResponse := setupEventResponse{peerInfo: peerInfos{
+				Addresses:                 homekit.Server.Ips,
+				Id:                        homekit.Device.Pi.String(),
+				ClockPortMatchingOverride: false,
+			}, EventPort: 60003}
+			if body, err := plist.Marshal(setupEventResponse, plist.AutomaticFormat); err == nil {
 				return &rtsp.Response{StatusCode: rtsp.StatusOK, Header: rtsp.Header{
 					"Content-Type": rtsp.HeaderValue{"application/x-apple-binary-plist"},
 				}, Body: body}, nil

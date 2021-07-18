@@ -31,9 +31,22 @@ func main() {
 		panic(err)
 	}
 	macAddress := strings.ToUpper(iFace.HardwareAddr.String())
+	ipAddresses, err := iFace.Addrs()
+	if err != nil {
+		panic(err)
+	}
+	var ipStringAddr []string
+	for _, addr := range ipAddresses {
+		switch v := addr.(type) {
+		case *net.IPNet:
+			ipStringAddr = append(ipStringAddr, v.IP.String())
+		case *net.IPAddr:
+			ipStringAddr = append(ipStringAddr, v.IP.String())
+		}
+	}
 	homekit.Device = homekit.NewAccessory(macAddress, deviceName, airplayDevice())
 	log.Printf("Device %v", homekit.Device)
-	homekit.Server, err = homekit.NewServer(macAddress, deviceName)
+	homekit.Server, err = homekit.NewServer(macAddress, deviceName, ipStringAddr)
 
 	server, err := zeroconf.Register(deviceName, "_airplay._tcp", "local.",
 		7000, homekit.Device.ToRecords(), []net.Interface{*iFace})

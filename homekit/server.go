@@ -14,9 +14,10 @@ type server struct {
 	Database db.Database
 	Device   hap.SecuredDevice
 	Name     string
+	Ips      []string
 }
 
-func NewServer(macAddress string, deviceName string) (*server, error) {
+func NewServer(macAddress string, deviceName string, ips []string) (*server, error) {
 
 	storage, err := util.NewFileStorage(deviceName)
 	if err != nil {
@@ -33,6 +34,7 @@ func NewServer(macAddress string, deviceName string) (*server, error) {
 		Database: database,
 		Device:   device,
 		Name:     deviceName,
+		Ips:      ips,
 	}, nil
 }
 
