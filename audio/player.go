@@ -49,9 +49,8 @@ func NewPlayer(clock *ptp.VirtualClock, ring *Ring) *Player {
 	}
 }
 
-func (p *Player) Run(s *Server) {
+func (p *Player) Run() {
 	var err error
-	defer s.Close()
 	if err := p.stream.Init(); err != nil {
 		log.Fatalln("Audio Stream init error:", err)
 	}
@@ -63,9 +62,11 @@ func (p *Player) Run(s *Server) {
 		case msg := <-p.ControlChannel:
 			switch msg.MType {
 			case globals.PAUSE:
-				if err := p.stream.Stop(); err != nil {
-					log.Printf("error stoping audio :%v\n", err)
-					return
+				if p.Status == PLAYING {
+					if err := p.stream.Stop(); err != nil {
+						log.Printf("error pausing audio :%v\n", err)
+						return
+					}
 				}
 				p.Status = STOPPED
 			case globals.START:
@@ -76,7 +77,6 @@ func (p *Player) Run(s *Server) {
 				p.skipUntil(msg.Param1, msg.Param2)
 			case globals.STOP:
 				log.Printf("Stopping audio player")
-				return
 			}
 		default:
 			if p.Status != STOPPED && p.clock.Now().UnixNano() >= p.nextStart {
@@ -121,4 +121,12 @@ func (p *Player) skipUntil(fromSeq int64, UntilSeq int64) {
 		frame := value.(*PCMFrame)
 		return frame.SequenceNumber < uint32(fromSeq) || frame.SequenceNumber > uint32(UntilSeq)
 	})
+}
+
+func (p *Player) Push(frame interface{}) {
+	p.ringBuffer.Push(frame)
+}
+
+func (p *Player) Reset() {
+	p.ringBuffer.Reset()
 }

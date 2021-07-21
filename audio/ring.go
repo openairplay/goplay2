@@ -1,14 +1,13 @@
 package audio
 
-
 import (
 	"errors"
 	"sync"
 )
 
 var (
-	ErrIsFull             = errors.New("ring is full")
-	ErrIsEmpty            = errors.New("ring is empty")
+	ErrIsFull  = errors.New("ring is full")
+	ErrIsEmpty = errors.New("ring is empty")
 )
 
 type Ring struct {
@@ -22,14 +21,14 @@ type Ring struct {
 	rcd    *sync.Cond
 }
 
-// New returns a new Ring whose buffer has the given size.
-func New(size int) *Ring {
+// NewRing New returns a new Ring whose buffer has the given size.
+func NewRing(size int) *Ring {
 	rwmu := sync.Mutex{}
 	return &Ring{
 		buf:  make([]interface{}, size),
 		size: size,
-		wcd: sync.NewCond(&rwmu),
-		rcd: sync.NewCond(&rwmu),
+		wcd:  sync.NewCond(&rwmu),
+		rcd:  sync.NewCond(&rwmu),
 	}
 }
 
@@ -69,7 +68,7 @@ func (r *Ring) TryPush(c interface{}) error {
 	return nil
 }
 
-func (r *Ring) Flush(predicate func (interface{}) bool) int {
+func (r *Ring) Flush(predicate func(interface{}) bool) int {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.w == r.r && !r.isFull {
@@ -96,7 +95,6 @@ func (r *Ring) Flush(predicate func (interface{}) bool) int {
 	return writerPos
 }
 
-
 func (r *Ring) Push(c interface{}) {
 	err := r.TryPush(c)
 	r.wcd.L.Lock()
@@ -108,11 +106,11 @@ func (r *Ring) Push(c interface{}) {
 }
 
 func (r *Ring) Pop() interface{} {
-	value , err := r.TryPop()
+	value, err := r.TryPop()
 	r.rcd.L.Lock()
 	for err == ErrIsEmpty {
 		r.rcd.Wait()
-		value , err = r.TryPop()
+		value, err = r.TryPop()
 	}
 	r.rcd.L.Unlock()
 	return value

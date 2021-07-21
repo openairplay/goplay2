@@ -46,7 +46,7 @@ func NewGetInfoResponse(deviceId string, features uint64, pi string,
 		Pi:              pi,
 		Psi:             psi,
 		ProtocolVersion: "1.1",
-		Sdk:             "AirPlay;2.0.2",
+		Sdk:             "AirPlay;2.0.4",
 		SourceVersion:   sourceVersion,
 		StatusFlags:     0x4,
 	}

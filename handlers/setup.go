@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"goplay2/audio"
+	"goplay2/globals"
 	"goplay2/homekit"
 	"goplay2/rtsp"
 	"howett.net/plist"
@@ -45,8 +46,6 @@ type setupSteamsResponse struct {
 	Streams []setupStream `plist:"streams"`
 }
 
-const BufferSize = 838860
-
 func (r *Rstp) OnSetupWeb(req *rtsp.Request) (*rtsp.Response, error) {
 
 	if contentType, found := req.Header["Content-Type"]; found && strings.EqualFold(contentType[0], "application/x-apple-binary-plist") {
@@ -62,7 +61,7 @@ func (r *Rstp) OnSetupWeb(req *rtsp.Request) (*rtsp.Response, error) {
 				}
 				setupStreamsResponse := setupSteamsResponse{
 					Streams: []setupStream{{
-						BufferSize:  BufferSize,
+						BufferSize:  globals.BufferSize,
 						AudioFormat: content.Streams[0].AudioFormat,
 						DataPort:    uint16(port),
 						ControlPort: 60003,
@@ -77,7 +76,7 @@ func (r *Rstp) OnSetupWeb(req *rtsp.Request) (*rtsp.Response, error) {
 				}
 			}
 		} else {
-			r.streams[req.Path] = audio.NewServer(r.clock, BufferSize)
+			r.streams[req.Path] = audio.NewServer(r.player)
 			setupEventResponse := setupEventResponse{peerInfo: peerInfos{
 				Addresses:                 homekit.Server.Ips,
 				Id:                        homekit.Device.Pi.String(),

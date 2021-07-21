@@ -5,24 +5,27 @@ import (
 	"goplay2/audio"
 	"goplay2/homekit"
 	"goplay2/pairing"
-	"goplay2/ptp"
 	"goplay2/rtsp"
 	"log"
 )
 
 type Rstp struct {
 	streams map[string]*audio.Server
-	clock   *ptp.VirtualClock
 	pairing *pairing.Controller
+	player  *audio.Player
 }
 
-func NewRstpHandler(deviceName string, clock *ptp.VirtualClock) (*Rstp, error) {
+func NewRstpHandler(deviceName string, player *audio.Player) (*Rstp, error) {
 
 	ctrl, err := pairing.NewController(deviceName)
 	if err != nil {
 		return nil, err
 	}
-	return &Rstp{streams: make(map[string]*audio.Server), clock: clock, pairing: ctrl}, nil
+	return &Rstp{
+		streams: make(map[string]*audio.Server),
+		pairing: ctrl,
+		player:  player,
+	}, nil
 }
 
 func (r *Rstp) OnConnOpen(conn *rtsp.Conn) {
@@ -31,7 +34,7 @@ func (r *Rstp) OnConnOpen(conn *rtsp.Conn) {
 }
 
 func (r *Rstp) OnRequest(conn *rtsp.Conn, request *rtsp.Request) {
-	log.Printf("request received : %s %s body %d at %v", request.Method, request.URL, len(request.Body), r.clock.Now().UnixNano())
+	log.Printf("request received : %s %s body %d", request.Method, request.URL, len(request.Body))
 }
 
 func (r *Rstp) Handle(conn *rtsp.Conn, req *rtsp.Request) (*rtsp.Response, error) {
@@ -61,5 +64,5 @@ func (r *Rstp) Handle(conn *rtsp.Conn, req *rtsp.Request) (*rtsp.Response, error
 }
 
 func (r *Rstp) OnResponse(conn *rtsp.Conn, resp *rtsp.Response) {
-	log.Printf("response sent : body %d at %v", len(resp.Body), r.clock.Now().UnixNano())
+	log.Printf("response sent : body %d", len(resp.Body))
 }

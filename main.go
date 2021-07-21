@@ -3,8 +3,10 @@ package main
 import (
 	"flag"
 	"github.com/grandcat/zeroconf"
+	"goplay2/audio"
 	"goplay2/config"
 	"goplay2/event"
+	"goplay2/globals"
 	"goplay2/handlers"
 	"goplay2/homekit"
 	"goplay2/ptp"
@@ -56,10 +58,19 @@ func main() {
 	defer server.Shutdown()
 
 	clock := ptp.NewVirtualClock(delay)
-	ptp := ptp.NewServer(clock)
+	ptpServer := ptp.NewServer(clock)
+
+	// Divided by 100 -> average size of a RTP packet
+	audioBuffer := audio.NewRing(globals.BufferSize / 100)
+	player := audio.NewPlayer(clock, audioBuffer)
 
 	wg := new(sync.WaitGroup)
-	wg.Add(3)
+	wg.Add(4)
+
+	go func() {
+		player.Run()
+		wg.Done()
+	}()
 
 	go func() {
 		event.RunEventServer()
@@ -67,11 +78,12 @@ func main() {
 	}()
 
 	go func() {
-		ptp.Serve()
+		ptpServer.Serve()
+		wg.Done()
 	}()
 
 	go func() {
-		handler, e := handlers.NewRstpHandler(deviceName, clock)
+		handler, e := handlers.NewRstpHandler(deviceName, player)
 		if e != nil {
 			panic(e)
 		}
