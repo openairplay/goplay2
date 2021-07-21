@@ -3,7 +3,7 @@ package ptp
 import (
 	"encoding"
 	"github.com/albanseurat/go-ptp"
-	"log"
+	"goplay2/globals"
 	"net"
 	"time"
 )
@@ -57,12 +57,12 @@ func (s *Server) Serve() {
 	var err error
 	s.genConn, err = net.ListenUDP("udp", &net.UDPAddr{Port: 320})
 	if err != nil {
-		log.Printf("Error while listening port 320 %v\n", err)
+		globals.ErrLog.Printf("Error while listening port 320 %v\n", err)
 		return
 	}
 	s.eventConn, err = net.ListenUDP("udp", &net.UDPAddr{Port: 319})
 	if err != nil {
-		log.Printf("Error while listening port 319 %v\n", err)
+		globals.ErrLog.Printf("Error while listening port 319 %v\n", err)
 		return
 	}
 
@@ -86,7 +86,7 @@ func (s *Server) Serve() {
 			binary, _ := NewDelayRequest(x.SequenceID).MarshalBinary()
 			binary[0] |= 0x10 // add transport specific to 1 for Apple ...
 			if _, err = s.eventConn.WriteToUDP(binary, msg.Src); err != nil {
-				log.Printf("Error writing UDP packet %v\n", err)
+				globals.ErrLog.Printf("Error writing UDP packet %v\n", err)
 				return
 			}
 			s.measurements.addDelayReq(x.SequenceID, s.clock.Now())
@@ -111,7 +111,7 @@ func handlePtpPacket(clock *VirtualClock, conn *net.UDPConn, packetChan chan ser
 		msgLen, addr, err := conn.ReadFromUDP(udpPacket[:])
 		receivedTime := clock.Now()
 		if err != nil {
-			log.Printf("Error reading UDP packet %v\n", err)
+			globals.ErrLog.Printf("Error reading UDP packet %v\n", err)
 			return
 		}
 		header := &ptp.Header{}
@@ -141,7 +141,7 @@ func handlePtpPacket(clock *VirtualClock, conn *net.UDPConn, packetChan chan ser
 
 func parsePacket(packet []byte, unmarshaler encoding.BinaryUnmarshaler) error {
 	if err := unmarshaler.UnmarshalBinary(packet); err != nil {
-		log.Printf("Error parsing PTP %v\n", err)
+		globals.ErrLog.Printf("Error parsing PTP %v\n", err)
 		return err
 	}
 	return nil

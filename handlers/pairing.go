@@ -9,7 +9,6 @@ import (
 	"goplay2/homekit"
 	"goplay2/rtsp"
 	"howett.net/plist"
-	"log"
 	"strings"
 )
 
@@ -126,12 +125,11 @@ func (r *Rstp) OnPairRemove(conn *rtsp.Conn, req *rtsp.Request) (*rtsp.Response,
 	return &rtsp.Response{StatusCode: rtsp.StatusOK}, nil
 }
 
-
 func (r *Rstp) OnPairList(conn *rtsp.Conn, req *rtsp.Request) (*rtsp.Response, error) {
 
 	if contentType, found := req.Header["Content-Type"]; found && strings.EqualFold(contentType[0], "application/x-apple-binary-plist") {
 		if container, err := util.NewTLV8ContainerFromReader(bytes.NewReader(req.Body)); err == nil {
-			outputContainer , err := r.pairing.Handle(container)
+			outputContainer, err := r.pairing.Handle(container)
 			if err != nil {
 				return &rtsp.Response{StatusCode: rtsp.StatusInternalServerError}, nil
 			}
@@ -145,8 +143,8 @@ func (r *Rstp) OnPairConfigure(req *rtsp.Request) (*rtsp.Response, error) {
 
 	if contentType, found := req.Header["Content-Type"]; found && strings.EqualFold(contentType[0], "application/x-apple-binary-plist") {
 		var content map[string]interface{}
-		if _, err := plist.Unmarshal(req.Body, &content); err == nil {
-			log.Printf("Content : %v\n", content)
+		if _, err := plist.Unmarshal(req.Body, &content); err != nil {
+			return &rtsp.Response{StatusCode: rtsp.StatusInternalServerError}, nil
 		}
 	}
 

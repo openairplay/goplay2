@@ -8,13 +8,13 @@ import (
 
 func TestRing_Pop(t *testing.T) {
 
-	buffer := New(2)
+	buffer := NewRing(2)
 
 	go func() {
 		time.Sleep(1 * time.Second)
 		buffer.Push(0)
 	}()
-	_ , err := buffer.TryPop()
+	_, err := buffer.TryPop()
 	value := buffer.Pop()
 
 	if value != 0 || err != ErrIsEmpty {
@@ -22,10 +22,9 @@ func TestRing_Pop(t *testing.T) {
 	}
 }
 
-
 func TestRing_Push(t *testing.T) {
 
-	buffer := New( 2)
+	buffer := NewRing(2)
 
 	buffer.Push(0)
 	buffer.Push(1)
@@ -44,8 +43,8 @@ func TestRing_Push(t *testing.T) {
 
 func TestRing_Flush(t *testing.T) {
 
-	buffer := New(10)
-	for i := 0 ; i < 8 ; i++ {
+	buffer := NewRing(10)
+	for i := 0; i < 8; i++ {
 		buffer.Push(i)
 	}
 	buffer.Flush(func(value interface{}) bool {

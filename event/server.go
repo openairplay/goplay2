@@ -1,7 +1,7 @@
 package event
 
 import (
-	"log"
+	"goplay2/globals"
 	"net"
 	"os"
 )
@@ -10,7 +10,7 @@ func RunEventServer() {
 	// listen for incoming connections.
 	l, err := net.Listen("tcp", ":60003")
 	if err != nil {
-		log.Println("Error listening:", err.Error())
+		globals.ErrLog.Println("Error listening:", err.Error())
 		return
 	}
 	// Close the listener when the application closes.
@@ -19,7 +19,7 @@ func RunEventServer() {
 		// listen for an incoming connection.
 		conn, err := l.Accept()
 		if err != nil {
-			log.Println("Error accepting: ", err.Error())
+			globals.ErrLog.Println("Error accepting: ", err.Error())
 			os.Exit(1)
 		}
 
@@ -34,7 +34,7 @@ func handleEventConnection(conn net.Conn) {
 		var buffer [4096]byte
 		_, err := conn.Read(buffer[:])
 		if err != nil {
-			log.Printf("Event error : %v", err)
+			globals.ErrLog.Printf("Event error : %v", err)
 			break
 		}
 	}

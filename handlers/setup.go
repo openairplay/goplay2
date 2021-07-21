@@ -6,7 +6,6 @@ import (
 	"goplay2/homekit"
 	"goplay2/rtsp"
 	"howett.net/plist"
-	"log"
 	"strings"
 )
 
@@ -64,11 +63,9 @@ func (r *Rstp) OnSetupWeb(req *rtsp.Request) (*rtsp.Response, error) {
 						BufferSize:  globals.BufferSize,
 						AudioFormat: content.Streams[0].AudioFormat,
 						DataPort:    uint16(port),
-						ControlPort: 60003,
 						TypeStream:  content.Streams[0].Type,
 					}},
 				}
-				log.Printf("Response : %v", setupStreamsResponse)
 				if body, err := plist.Marshal(setupStreamsResponse, plist.AutomaticFormat); err == nil {
 					return &rtsp.Response{StatusCode: rtsp.StatusOK, Header: rtsp.Header{
 						"Content-Type": rtsp.HeaderValue{"application/x-apple-binary-plist"},

@@ -3,7 +3,6 @@ package handlers
 import (
 	"goplay2/rtsp"
 	"howett.net/plist"
-	"log"
 	"math"
 	"math/big"
 	"strings"
@@ -51,7 +50,6 @@ func (r *Rstp) OnAudioMode(req *rtsp.Request) (*rtsp.Response, error) {
 		if _, err := plist.Unmarshal(req.Body, &content); err != nil {
 			return &rtsp.Response{StatusCode: rtsp.StatusBadRequest}, nil
 		}
-		log.Printf("%v\n", content)
 	}
 
 	return &rtsp.Response{StatusCode: rtsp.StatusOK}, nil
@@ -118,7 +116,6 @@ func (r *Rstp) OnFlushBuffered(req *rtsp.Request) (*rtsp.Response, error) {
 				s.Flush(0, content["flushUntilSeq"].(uint64))
 			}
 		}
-		log.Printf("%v\n", content)
 	}
 	return &rtsp.Response{StatusCode: rtsp.StatusOK}, nil
 }

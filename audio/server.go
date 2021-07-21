@@ -6,7 +6,6 @@ import (
 	aac "github.com/albanseurat/go-fdkaac"
 	"goplay2/globals"
 	"io"
-	"log"
 	"net"
 	"time"
 )
@@ -24,7 +23,7 @@ func NewServer(player *Player) *Server {
 
 	asc := []byte{0x12, 0x10}
 	if err := aacDecoder.InitRaw(asc); err != nil {
-		log.Panicf("init decoder failed, err is %s", err)
+		globals.ErrLog.Panicf("init decoder failed, err is %s", err)
 	}
 
 	return &Server{
@@ -55,13 +54,13 @@ func (s *Server) control(l net.Listener) {
 	defer s.player.Reset()
 	conn, err := l.Accept()
 	if err != nil {
-		log.Println("Error accepting: ", err.Error())
+		globals.ErrLog.Println("Error accepting: ", err.Error())
 	}
 	defer conn.Close()
 	for {
 		frame, err := s.decodeToPcm(conn)
 		if err != nil {
-			log.Printf("error decoding to pcm %v", err)
+			globals.ErrLog.Printf("error decoding to pcm %v", err)
 			return
 		}
 		s.player.Push(frame)

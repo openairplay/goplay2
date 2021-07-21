@@ -2,7 +2,7 @@ package rtsp
 
 import (
 	"bufio"
-	"log"
+	"goplay2/globals"
 	"net"
 )
 
@@ -51,7 +51,7 @@ func RunRtspServer(handlers Handler) (err error) {
 
 			conn, err := l.Accept()
 			if err != nil {
-				log.Println("Error accepting: ", err.Error())
+				globals.ErrLog.Println("Error accepting: ", err.Error())
 				return err
 			}
 			rConn := &Conn{
@@ -73,18 +73,18 @@ func (s *Server) handleRstpConnection(conn *Conn) {
 	for {
 		request, err := parseRequest(s.br)
 		if err != nil {
-			log.Printf("Error parsing RSTP request %v \n", err)
+			globals.ErrLog.Printf("Error parsing RSTP request %v \n", err)
 			return
 		}
 		s.h.OnRequest(conn, request)
 		response, err := s.h.Handle(conn, request)
 		if err != nil {
-			log.Printf("Error handling RSTP request %v \n", err)
+			globals.ErrLog.Printf("Error handling RSTP request %v \n", err)
 			return
 		}
 		err = s.flushResponse(conn, request, response)
 		if err != nil {
-			log.Printf("Error flusing RSTP response %v \n", err)
+			globals.ErrLog.Printf("Error flusing RSTP response %v \n", err)
 			return
 		}
 	}

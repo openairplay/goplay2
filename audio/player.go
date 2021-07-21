@@ -36,9 +36,12 @@ type Player struct {
 	stream         Stream
 	ringBuffer     *Ring
 	nextStart      int64
+	nextFrame      int64
+	syncLogger     *log.Logger
 }
 
-func NewPlayer(clock *ptp.VirtualClock, ring *Ring) *Player {
+func NewPlayer(syncFile io.Writer, clock *ptp.VirtualClock, ring *Ring) *Player {
+
 	return &Player{
 		clock:          clock,
 		ControlChannel: make(chan globals.ControlMessage, 100),
@@ -46,13 +49,16 @@ func NewPlayer(clock *ptp.VirtualClock, ring *Ring) *Player {
 		Status:         STOPPED,
 		ringBuffer:     ring,
 		nextStart:      0,
+		syncLogger:     log.New(syncFile, "SYNC: ", log.Ldate|log.Ltime|log.Lshortfile),
 	}
 }
 
 func (p *Player) Run() {
 	var err error
+
+	syncA := syncAudio{}
 	if err := p.stream.Init(); err != nil {
-		log.Fatalln("Audio Stream init error:", err)
+		globals.ErrLog.Fatalln("Audio Stream init error:", err)
 	}
 	defer p.stream.Close()
 	out := make([]int16, 2048)
@@ -64,7 +70,7 @@ func (p *Player) Run() {
 			case globals.PAUSE:
 				if p.Status == PLAYING {
 					if err := p.stream.Stop(); err != nil {
-						log.Printf("error pausing audio :%v\n", err)
+						globals.ErrLog.Printf("error pausing audio :%v\n", err)
 						return
 					}
 				}
@@ -73,35 +79,36 @@ func (p *Player) Run() {
 				p.Status = STARTED
 			case globals.WAIT:
 				p.nextStart = msg.Param1
+				p.nextFrame = msg.Param2
 			case globals.SKIP:
 				p.skipUntil(msg.Param1, msg.Param2)
 			case globals.STOP:
-				log.Printf("Stopping audio player")
+				p.syncLogger.Printf("Stopping audio player")
 			}
 		default:
 			if p.Status != STOPPED && p.clock.Now().UnixNano() >= p.nextStart {
 				if p.Status == STARTED {
 					p.Status = PLAYING
-					log.Printf("%v Starting streaming with anchor time %v at %v\n", time.Now(), p.nextStart, p.clock.Now().UnixNano())
+					p.syncLogger.Printf("%v Starting streaming with anchor time %v at %v\n", time.Now(), p.nextStart, p.clock.Now().UnixNano())
 					err = p.stream.Start()
 					if err != nil {
-						log.Printf("error while starting flow : %v\n", err)
+						globals.ErrLog.Printf("error while starting flow : %v\n", err)
 						return
 					}
 				}
 				frame := p.ringBuffer.Pop().(*PCMFrame)
+				// https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.125.8673&rep=rep1&type=pdf
+				p.syncLogger.Printf("Frame timestamp : %v , now : %v - skew ratio: %v\n",
+					frame.Timestamp, p.clock.Now().UnixNano(), syncA.audioSkew(p.clock.Now().UnixNano(), int64(frame.Timestamp)))
 				err = binary.Read(bytes.NewReader(frame.pcmData), binary.LittleEndian, out)
 				if err != nil {
-					log.Printf("error reading data : %v\n", err)
+					globals.ErrLog.Printf("error reading data : %v\n", err)
 					return
 				}
 				if err = p.stream.Write(out); err != nil {
-					log.Printf("error writing audio :%v\n", err)
-					if err != underflow {
-						return
-					}
+					globals.ErrLog.Printf("error writing audio :%v\n", err)
 					if err := p.stream.Stop(); err != nil {
-						log.Printf("error stoping audio :%v\n", err)
+						globals.ErrLog.Printf("error stopping audio :%v\n", err)
 						return
 					}
 					p.Status = STARTED
@@ -113,7 +120,7 @@ func (p *Player) Run() {
 
 func (p *Player) skipUntil(fromSeq int64, UntilSeq int64) {
 	if p.Status == PLAYING {
-		log.Printf("Stopping streaming for skipping to sequence %v\n", UntilSeq)
+		p.syncLogger.Printf("Stopping streaming for skipping to sequence %v\n", UntilSeq)
 		p.stream.Stop()
 		p.Status = STOPPED
 	}

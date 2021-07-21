@@ -29,7 +29,6 @@ func NewRstpHandler(deviceName string, player *audio.Player) (*Rstp, error) {
 }
 
 func (r *Rstp) OnConnOpen(conn *rtsp.Conn) {
-	log.Printf("conn opened")
 	conn.SetNetConn(hap.NewConnection(conn.NetConn(), homekit.Server.Context))
 }
 
