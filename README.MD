@@ -1,28 +1,42 @@
 # Go Play 2
 
-This is a **work in progress** Airplay 2 Speaker implementation largely inspired by [airplay2-receiver](https://github.com/openairplay/airplay2-receiver)
+This is a **working** Airplay 2 Speaker implementation largely inspired by [airplay2-receiver](https://github.com/openairplay/airplay2-receiver)
+<br>
+The goal is to have an *Opinionated* implementation, with only some features but working very well.
 
-## Status
+## Features
 
-Can 
+#### Can 
 
-* be registered **with the Home App** and be directed by Siri !
-* Play AAC 44100 with buffered audio
+* Play AAC 44100Hz with Apple Music (buffered audio)
 * Play/Pause/Stop/Seek
-* PTP supported and sync with homepod mini
+* Homekit pairing with iPhone Home App
+* Sync with HomePod mini
+* PTP supported 
+* **Working** on a Rasbperry 1
 
-#### Next Step 
+#### Nexts  
 
-* Play ALAC
-* Need to be hardened 
-* Supports Audio UDP (spotify) 
+* P1 - Improve multi-room support (audio sync)
+* P2 - Play ALAC
+* P3 - Supports Spotify (RTP over UDP, type 96) 
+* P4 - NIC hardware timestamp (linux)
+* P5 - Better alsa integration (linux)
+
+#### Will not support
+
+* Windows build
+* Track information 
+* Screen, Video, ... (other Airplay Features)
+* Airplay 1
+* NTP
 
 #### Multi Room accuracy 
 
-PTP (Precision Time protocol) is implemented, but it does not (yet) use NIC hardware timestamps.
-Therefore, the accuracy is around 1ms of offset between clocks.
+* The accuracy is around 1ms of offset between clocks.
+* Need to sync during playing (add silence of skip frames) 
 
-## How to build
+## How to build ( works on Linux and MacOsX)
 
 * Clone the repository 
   
@@ -40,11 +54,7 @@ make
 
 ### Dependencies 
 
-You need to have binutils, portaudio-dev, gcc and go runtime installed to build this program
-
-### Raspberry Pi 
-
-TODO 
+You need to have binutils, libtool, portaudio-dev, libasound2-dev, gcc and go runtime installed to build this program
 
 ### Docker image
 
