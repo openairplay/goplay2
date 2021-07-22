@@ -36,7 +36,7 @@ func (r *Ring) TryPop() (b interface{}, err error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.w == r.r && !r.isFull {
-		return 0, ErrIsEmpty
+		return nil, ErrIsEmpty
 	}
 	b = r.buf[r.r]
 	r.r++
@@ -66,6 +66,16 @@ func (r *Ring) TryPush(c interface{}) error {
 		r.rcd.Signal()
 	}
 	return nil
+}
+
+func (r *Ring) TryPeek() (b interface{}, err error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.w == r.r && !r.isFull {
+		return nil, ErrIsEmpty
+	}
+	b = r.buf[r.r]
+	return b, nil
 }
 
 func (r *Ring) Flush(predicate func(interface{}) bool) int {
@@ -111,6 +121,17 @@ func (r *Ring) Pop() interface{} {
 	for err == ErrIsEmpty {
 		r.rcd.Wait()
 		value, err = r.TryPop()
+	}
+	r.rcd.L.Unlock()
+	return value
+}
+
+func (r *Ring) Peek() interface{} {
+	value, err := r.TryPeek()
+	r.rcd.L.Lock()
+	for err == ErrIsEmpty {
+		r.rcd.Wait()
+		value, err = r.TryPeek()
 	}
 	r.rcd.L.Unlock()
 	return value

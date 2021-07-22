@@ -11,7 +11,5 @@ type ControlMessage struct {
 const (
 	PAUSE ControlMessageType = iota
 	START
-	WAIT
 	SKIP
-	STOP
 )

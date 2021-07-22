@@ -81,12 +81,11 @@ func (s *Server) decodeToPcm(reader io.Reader) (*PCMFrame, error) {
 }
 
 func (s *Server) SetRateAnchorTime(rtpTime uint32, networkTime time.Time) {
-	s.player.ControlChannel <- globals.ControlMessage{MType: globals.WAIT, Param1: networkTime.UnixNano(), Param2: int64(rtpTime)}
-	s.player.ControlChannel <- globals.ControlMessage{MType: globals.START}
+	s.player.ControlChannel <- globals.ControlMessage{MType: globals.START, Param1: networkTime.UnixNano(), Param2: int64(rtpTime)}
 }
 
 func (s *Server) Teardown() {
-	s.player.ControlChannel <- globals.ControlMessage{MType: globals.STOP}
+	s.player.ControlChannel <- globals.ControlMessage{MType: globals.PAUSE}
 }
 
 func (s *Server) SetRate0() {

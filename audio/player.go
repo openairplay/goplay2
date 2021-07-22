@@ -77,13 +77,10 @@ func (p *Player) Run() {
 				p.Status = STOPPED
 			case globals.START:
 				p.Status = STARTED
-			case globals.WAIT:
 				p.nextStart = msg.Param1
 				p.nextFrame = msg.Param2
 			case globals.SKIP:
 				p.skipUntil(msg.Param1, msg.Param2)
-			case globals.STOP:
-				p.syncLogger.Printf("Stopping audio player")
 			}
 		default:
 			if p.Status != STOPPED && p.clock.Now().UnixNano() >= p.nextStart {
@@ -113,6 +110,9 @@ func (p *Player) Run() {
 					}
 					p.Status = STARTED
 				}
+			} else {
+				// yield while there is no playing
+				time.Sleep(50 * time.Millisecond)
 			}
 		}
 	}
