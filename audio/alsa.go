@@ -51,3 +51,17 @@ func (s *AlsaSteam) Write(output []int16) error {
 	}
 	return nil
 }
+
+// TODO : use real alsa function rather than launching a command
+func (s *AlsaSteam) SetVolume(volume float64) {
+	vol := math.Abs(volume)
+	if vol == 144 {
+		vol = 0
+	} else {
+		vol = math.Floor((30 - vol) / 30 * 100)
+	}
+	if config.Config.AlsaMixerName != "disabled" {
+		cmd := exec.Command("amixer", "sset", config.Config.AlsaMixerName, strconv.FormatFloat(vol, 'f', 0, 64)+"%")
+		cmd.Run()
+	}
+}

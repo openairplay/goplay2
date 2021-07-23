@@ -20,15 +20,16 @@ import (
 
 func main() {
 	var ifName string
-	var syncLogFile string
 	var delay int64
+
+	flag.StringVar(&config.Config.DeviceName, "n", "goplay", "Specify device name")
+	config.Config.Load()
+	defer config.Config.Store()
 
 	flag.StringVar(&ifName, "i", "eth0", "Specify interface")
 	flag.Int64Var(&delay, "delay", 50, "Specify hardware delay in ms (useful on slow computer)")
-	flag.StringVar(&config.Config.DeviceName, "n", "goplay", "Specify device name")
-	flag.StringVar(&syncLogFile, "sync", "/dev/null", "Specify audio sync log")
-	flag.StringVar(&config.Config.AlsaPortName, "alsa", "pcm.default", "Specify Alsa Device - Linux only")
-	flag.StringVar(&config.Config.AlsaMixerName, "alsamixer", "disabled", "Specify Alsa Mixer Control - Linux only")
+	flag.StringVar(&config.Config.AlsaPortName, "alsa", config.Config.AlsaPortName, "Specify Alsa Device - Linux only")
+	flag.StringVar(&config.Config.AlsaMixerName, "alsamixer", config.Config.AlsaMixerName, "Specify Alsa Mixer Control - Linux only")
 	flag.Parse() // after declaring flags we need to call it
 
 	globals.ErrLog = log.New(os.Stderr, "Error:", log.LstdFlags|log.Lshortfile|log.Lmsgprefix)
@@ -51,7 +52,7 @@ func main() {
 			ipStringAddr = append(ipStringAddr, v.IP.String())
 		}
 	}
-	homekit.Device = homekit.NewAccessory(macAddress, config.Config.DeviceName, airplayDevice())
+	homekit.Device = homekit.NewAccessory(macAddress, config.Config.DeviceUUID, airplayDevice())
 	log.Printf("Starting goplay for device %v", homekit.Device)
 	homekit.Server, err = homekit.NewServer(macAddress, config.Config.DeviceName, ipStringAddr)
 
@@ -67,12 +68,8 @@ func main() {
 
 	// Divided by 100 -> average size of a RTP packet
 	audioBuffer := audio.NewRing(globals.BufferSize / 100)
-	syncFile, err := os.OpenFile(syncLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
-	if err != nil {
-		globals.ErrLog.Printf("Can not open %s, logging audio sync to stderr\n", syncLogFile)
-		syncFile = os.Stderr
-	}
-	player := audio.NewPlayer(syncFile, clock, audioBuffer)
+
+	player := audio.NewPlayer(clock, audioBuffer)
 
 	wg := new(sync.WaitGroup)
 	wg.Add(4)

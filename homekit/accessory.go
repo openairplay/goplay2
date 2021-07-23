@@ -30,8 +30,8 @@ type Accessory struct {
 	pk        string
 }
 
-func NewAccessory(deviceId string, deviceName string, features globals.Features) *Accessory {
-	var currentUuid = GetUUID(deviceName)
+func NewAccessory(deviceId string, currentUuid string, features globals.Features) *Accessory {
+	var deviceUuid = uuid.MustParse(currentUuid)
 	return &Accessory{
 		Srcvers:   "366.0",
 		Deviceid:  deviceId,
@@ -41,9 +41,9 @@ func NewAccessory(deviceId string, deviceName string, features globals.Features)
 		protovers: "1.1",
 		acl:       "0",
 		rsf:       "0x0",
-		Pi:        UUID{currentUuid},
-		Gid:       UUID{currentUuid},
-		Psi:       UUID{currentUuid},
+		Pi:        UUID{deviceUuid},
+		Gid:       UUID{deviceUuid},
+		Psi:       UUID{deviceUuid},
 		gcgl:      "0",
 		igl:       "0",
 		pk:        "b07727d6f6cd6e08b58ede525ec3cdeaa252ad9f683feb212ef8a205246554e7",

@@ -55,3 +55,7 @@ func (s *PortAudioStream) Write(output []int16) error {
 		return err
 	}
 }
+
+func (s *PortAudioStream) SetVolume(volume float64) {
+	// to nothing on mac
+}
