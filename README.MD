@@ -92,6 +92,8 @@ Ex: It takes around 60ms on my mac to launch the audio stream at the **Anchor Ti
 
 `alsa` (alsa port name) to replace default pcm port (default : pcm.default)
 
+`alsamixer` (alsa mixer control) used for volume control (default : disabled)
+
 ```shell
 ./goplay2 -alsa pcm.default -i en0 -n aiwa
 ```
