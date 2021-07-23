@@ -18,7 +18,6 @@ type Server struct {
 }
 
 func NewServer(player *Player) *Server {
-
 	aacDecoder := aac.NewAacDecoder()
 
 	asc := []byte{0x12, 0x10}

@@ -4,6 +4,7 @@ package audio
 
 import (
 	"github.com/gordonklaus/portaudio"
+	"time"
 )
 
 type PortAudioStream struct {
@@ -15,18 +16,21 @@ func NewStream() Stream {
 	return &PortAudioStream{}
 }
 
-func (s *PortAudioStream) Init() error {
+func (s *PortAudioStream) Init(callBack func (out []int16, info portaudio.StreamCallbackTimeInfo)) error {
 	var err error
 	if err = portaudio.Initialize(); err != nil {
 		return err
 	}
-	s.out = make([]int16, 2048)
 	// TODO : get the framePerBuffer from setup
-	s.stream, err = portaudio.OpenDefaultStream(0, 2, 44100, 1024, &s.out)
+	s.stream, err = portaudio.OpenDefaultStream(0, 2, 44100, 1024, callBack)
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+func (s * PortAudioStream) CurrentTime() time.Duration {
+	return s.stream.Time()
 }
 
 func (s *PortAudioStream) Close() error {
@@ -43,17 +47,6 @@ func (s *PortAudioStream) Start() error {
 
 func (s *PortAudioStream) Stop() error {
 	return s.stream.Stop()
-}
-
-func (s *PortAudioStream) Write(output []int16) error {
-	copy(s.out, output)
-	err := s.stream.Write()
-
-	if err == portaudio.OutputUnderflowed {
-		return underflow
-	} else {
-		return err
-	}
 }
 
 func (s *PortAudioStream) SetVolume(volume float64) {
