@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"github.com/gordonklaus/portaudio"
 	"goplay2/globals"
 	"goplay2/ptp"
 	"io"
+	"log"
 	"time"
 )
 
@@ -14,7 +16,6 @@ type PlaybackStatus uint8
 
 const (
 	STOPPED PlaybackStatus = iota
-	STARTED
 	PLAYING
 )
 
@@ -22,43 +23,54 @@ var underflow = errors.New("audio underflow")
 
 type Stream interface {
 	io.Closer
-	Init() error
-	Write([]int16) error
+	Init(callBack func(out []int16, info portaudio.StreamCallbackTimeInfo)) error
 	Start() error
 	Stop() error
 	SetVolume(volume float64)
+	CurrentTime() time.Duration
 }
 
 type Player struct {
 	ControlChannel chan globals.ControlMessage
-	clock          *ptp.VirtualClock
+	clock          *Clock
 	Status         PlaybackStatus
 	stream         Stream
 	ringBuffer     *Ring
-	nextStart      int64
-	nextFrame      int64
 }
 
 func NewPlayer(clock *ptp.VirtualClock, ring *Ring) *Player {
 
 	return &Player{
-		clock:          clock,
+		clock:          &Clock{clock, 0, 0, 0},
 		ControlChannel: make(chan globals.ControlMessage, 100),
 		stream:         NewStream(),
 		Status:         STOPPED,
 		ringBuffer:     ring,
-		nextStart:      0,
 	}
+}
+
+func (p *Player) callBack(out []int16, info portaudio.StreamCallbackTimeInfo) {
+	drift := p.clock.NowMediaTime().Add(-p.stream.CurrentTime()).UnixNano()
+	log.Printf("call back timing info : %v now : %v , clock :%v diff : %v\n",
+		info, p.stream.CurrentTime(), p.clock.NowMediaTime().UnixNano(), p.clock.previousDrift-drift)
+	frame, err := p.ringBuffer.TryPop()
+	if err == ErrIsEmpty {
+		p.fillSilence(out)
+	} else {
+		err = binary.Read(bytes.NewReader(frame.(*PCMFrame).pcmData), binary.LittleEndian, out)
+		if err != nil {
+			globals.ErrLog.Printf("error reading data : %v\n", err)
+		}
+	}
+	p.clock.previousDrift = drift
 }
 
 func (p *Player) Run() {
 	var err error
-	if err := p.stream.Init(); err != nil {
+	if err := p.stream.Init(p.callBack); err != nil {
 		globals.ErrLog.Fatalln("Audio Stream init error:", err)
 	}
 	defer p.stream.Close()
-	out := make([]int16, 2048)
-
 	for {
 		select {
 		case msg := <-p.ControlChannel:
@@ -72,51 +84,27 @@ func (p *Player) Run() {
 				}
 				p.Status = STOPPED
 			case globals.START:
-				p.Status = STARTED
-				p.nextStart = msg.Param1
-				p.nextFrame = msg.Param2
-			case globals.SKIP:
-				p.skipUntil(msg.Param1, msg.Param2)
-			case globals.VOLUME:
-				p.stream.SetVolume(msg.Paramf)
-			}
-		default:
-			if p.Status != STOPPED && p.clock.Now().UnixNano() >= p.nextStart {
-				if p.Status == STARTED {
-					p.Status = PLAYING
+				if p.Status == STOPPED {
 					err = p.stream.Start()
 					if err != nil {
 						globals.ErrLog.Printf("error while starting flow : %v\n", err)
 						return
 					}
 				}
-				frame := p.ringBuffer.Pop().(*PCMFrame)
-				err = binary.Read(bytes.NewReader(frame.pcmData), binary.LittleEndian, out)
-				if err != nil {
-					globals.ErrLog.Printf("error reading data : %v\n", err)
-					return
-				}
-				if err = p.stream.Write(out); err != nil {
-					globals.ErrLog.Printf("error writing audio :%v\n", err)
-					if err := p.stream.Stop(); err != nil {
-						globals.ErrLog.Printf("error stopping audio :%v\n", err)
-						return
-					}
-					p.Status = STARTED
-				}
-			} else {
-				// yield while there is no playing
-				time.Sleep(50 * time.Millisecond)
+				p.Status = PLAYING
+				p.clock.firstFrameTime = msg.Param1
+				p.clock.firstFrameTimestamp = msg.Param2
+			case globals.SKIP:
+				p.skipUntil(msg.Param1, msg.Param2)
+			case globals.VOLUME:
+				p.stream.SetVolume(msg.Paramf)
+
 			}
 		}
 	}
 }
 
 func (p *Player) skipUntil(fromSeq int64, UntilSeq int64) {
-	if p.Status == PLAYING {
-		p.stream.Stop()
-		p.Status = STOPPED
-	}
 	p.ringBuffer.Flush(func(value interface{}) bool {
 		frame := value.(*PCMFrame)
 		return frame.SequenceNumber < uint32(fromSeq) || frame.SequenceNumber > uint32(UntilSeq)
@@ -129,4 +117,10 @@ func (p *Player) Push(frame interface{}) {
 
 func (p *Player) Reset() {
 	p.ringBuffer.Reset()
+}
+
+func (p *Player) fillSilence(out []int16) {
+	for i := range out {
+		out[i] = 0
+	}
 }
