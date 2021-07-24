@@ -2,7 +2,6 @@ package config
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/google/uuid"
 	"io/ioutil"
 	"log"
@@ -42,12 +41,11 @@ func (c *Configuration) Load() {
 	}()
 }
 
-func (c * Configuration) Store() {
+func (c *Configuration) Store() {
 	data, err := json.Marshal(&c)
 	if err != nil {
 		log.Printf("Warning: impossible to marshal configuration in json")
 	}
-	fmt.Printf("%s", data)
 	err = ioutil.WriteFile(c.DeviceName+"/config.json", data, 0660)
 	if err != nil {
 		log.Printf("Warning : impossible to store config file %s \n", c.DeviceName+"/config.json")

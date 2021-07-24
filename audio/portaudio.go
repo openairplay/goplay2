@@ -16,20 +16,23 @@ func NewStream() Stream {
 	return &PortAudioStream{}
 }
 
-func (s *PortAudioStream) Init(callBack func (out []int16, info portaudio.StreamCallbackTimeInfo)) error {
+func (s *PortAudioStream) Init(callBack func(out []int16, currentTime time.Duration, outputBufferDacTime time.Duration)) error {
 	var err error
 	if err = portaudio.Initialize(); err != nil {
 		return err
 	}
-	// TODO : get the framePerBuffer from setup
-	s.stream, err = portaudio.OpenDefaultStream(0, 2, 44100, 1024, callBack)
+	portAudioCallback := func(out []int16, info portaudio.StreamCallbackTimeInfo) {
+		callBack(out, info.CurrentTime, info.OutputBufferDacTime)
+	}
+	//TODO : get the framePerBuffer from setup
+	s.stream, err = portaudio.OpenDefaultStream(0, 2, 44100, 1024, portAudioCallback)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s * PortAudioStream) CurrentTime() time.Duration {
+func (s *PortAudioStream) CurrentTime() time.Duration {
 	return s.stream.Time()
 }
 

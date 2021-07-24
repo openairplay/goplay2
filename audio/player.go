@@ -4,11 +4,9 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"github.com/gordonklaus/portaudio"
 	"goplay2/globals"
 	"goplay2/ptp"
 	"io"
-	"log"
 	"time"
 )
 
@@ -23,7 +21,7 @@ var underflow = errors.New("audio underflow")
 
 type Stream interface {
 	io.Closer
-	Init(callBack func(out []int16, info portaudio.StreamCallbackTimeInfo)) error
+	Init(callBack func(out []int16, currentTime time.Duration, outputBufferDacTime time.Duration)) error
 	Start() error
 	Stop() error
 	SetVolume(volume float64)
@@ -41,7 +39,7 @@ type Player struct {
 func NewPlayer(clock *ptp.VirtualClock, ring *Ring) *Player {
 
 	return &Player{
-		clock:          &Clock{clock, 0, 0, 0},
+		clock:          &Clock{clock, time.Now(), 0, 0},
 		ControlChannel: make(chan globals.ControlMessage, 100),
 		stream:         NewStream(),
 		Status:         STOPPED,
@@ -49,20 +47,26 @@ func NewPlayer(clock *ptp.VirtualClock, ring *Ring) *Player {
 	}
 }
 
-func (p *Player) callBack(out []int16, info portaudio.StreamCallbackTimeInfo) {
-	drift := p.clock.NowMediaTime().Add(-p.stream.CurrentTime()).UnixNano()
-	log.Printf("call back timing info : %v now : %v , clock :%v diff : %v\n",
-		info, p.stream.CurrentTime(), p.clock.NowMediaTime().UnixNano(), p.clock.previousDrift-drift)
-	frame, err := p.ringBuffer.TryPop()
-	if err == ErrIsEmpty {
+func (p *Player) callBack(out []int16, currentTime time.Duration, outputBufferDacTime time.Duration) {
+	rtpTime := p.clock.CurrentRtpTime()
+	frame, err := p.ringBuffer.TryPeek()
+	if err == ErrIsEmpty || int64(frame.(*PCMFrame).Timestamp) > rtpTime {
 		p.fillSilence(out)
 	} else {
-		err = binary.Read(bytes.NewReader(frame.(*PCMFrame).pcmData), binary.LittleEndian, out)
-		if err != nil {
-			globals.ErrLog.Printf("error reading data : %v\n", err)
+		frame, err = p.ringBuffer.TryPop()
+		for int64(frame.(*PCMFrame).Timestamp) < rtpTime-1024 {
+			frame, err = p.ringBuffer.TryPop()
+		}
+		if err == ErrIsEmpty {
+			p.fillSilence(out)
+		} else {
+			err = binary.Read(bytes.NewReader(frame.(*PCMFrame).pcmData), binary.LittleEndian, out)
+			if err != nil {
+				globals.ErrLog.Printf("error reading data : %v\n", err)
+			}
 		}
 	}
-	p.clock.previousDrift = drift
+	p.clock.IncRtpTime()
 }
 
 func (p *Player) Run() {
@@ -92,13 +96,11 @@ func (p *Player) Run() {
 					}
 				}
 				p.Status = PLAYING
-				p.clock.firstFrameTime = msg.Param1
-				p.clock.firstFrameTimestamp = msg.Param2
+				p.clock.AnchorTime(msg.Param1, msg.Param2)
 			case globals.SKIP:
 				p.skipUntil(msg.Param1, msg.Param2)
 			case globals.VOLUME:
 				p.stream.SetVolume(msg.Paramf)
-
 			}
 		}
 	}
