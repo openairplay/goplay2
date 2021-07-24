@@ -27,7 +27,6 @@ func (r *Rstp) OnGetParameterWeb(req *rtsp.Request) (*rtsp.Response, error) {
 		}, Body: []byte(body)}, nil
 
 	}
-
 	return &rtsp.Response{StatusCode: rtsp.StatusInternalServerError}, nil
 }
 
@@ -39,11 +38,11 @@ func (r *Rstp) OnSetParameterWeb(req *rtsp.Request) (*rtsp.Response, error) {
 			var vol float64
 			line := scanner.Text()
 			if strings.HasPrefix(line, "volume") {
-				if c, err := fmt.Sscanf(line, "volume: %f", &vol) ; c != 1 || err != nil {
+				if c, err := fmt.Sscanf(line, "volume: %f", &vol); c != 1 || err != nil {
 					fmt.Printf("erreur parsing volume parameters : %s\n", line)
 				} else {
 					config.Config.Volume = vol
-					r.player.ControlChannel <- globals.ControlMessage{MType: globals.VOLUME, Paramf: config.Config.Volume }
+					r.player.ControlChannel <- globals.ControlMessage{MType: globals.VOLUME, Paramf: config.Config.Volume}
 				}
 			}
 		}

@@ -4,10 +4,10 @@ package audio
 
 import (
 	"errors"
+	"exec"
 	"github.com/albanseurat/goalsa"
 	"goplay2/config"
 	"math"
-	"exec"
 	"strconv"
 )
 

@@ -27,7 +27,7 @@ func main() {
 	defer config.Config.Store()
 
 	flag.StringVar(&ifName, "i", "eth0", "Specify interface")
-	flag.Int64Var(&delay, "delay", 50, "Specify hardware delay in ms (useful on slow computer)")
+	flag.Int64Var(&delay, "delay", 0, "Specify hardware delay in ms")
 	flag.StringVar(&config.Config.AlsaPortName, "alsa", config.Config.AlsaPortName, "Specify Alsa Device - Linux only")
 	flag.StringVar(&config.Config.AlsaMixerName, "alsamixer", config.Config.AlsaMixerName, "Specify Alsa Mixer Control - Linux only")
 	flag.Parse() // after declaring flags we need to call it
