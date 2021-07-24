@@ -6,6 +6,9 @@ import (
 	"errors"
 	"github.com/albanseurat/goalsa"
 	"goplay2/config"
+	"math"
+	"exec"
+	"strconv"
 )
 
 type AlsaSteam struct {
