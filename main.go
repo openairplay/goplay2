@@ -23,14 +23,14 @@ func main() {
 	var delay int64
 
 	flag.StringVar(&config.Config.DeviceName, "n", "goplay", "Specify device name")
-	config.Config.Load()
-	defer config.Config.Store()
-
 	flag.StringVar(&ifName, "i", "eth0", "Specify interface")
 	flag.Int64Var(&delay, "delay", 0, "Specify hardware delay in ms")
 	flag.StringVar(&config.Config.AlsaPortName, "alsa", config.Config.AlsaPortName, "Specify Alsa Device - Linux only")
 	flag.StringVar(&config.Config.AlsaMixerName, "alsamixer", config.Config.AlsaMixerName, "Specify Alsa Mixer Control - Linux only")
 	flag.Parse() // after declaring flags we need to call it
+
+	config.Config.Load()
+	defer config.Config.Store()
 
 	globals.ErrLog = log.New(os.Stderr, "Error:", log.LstdFlags|log.Lshortfile|log.Lmsgprefix)
 

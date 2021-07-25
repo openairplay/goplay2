@@ -19,13 +19,14 @@ const (
 
 var underflow = errors.New("audio underflow")
 
+type StreamCallback func(out []int16, currentTime time.Duration, outputBufferDacTime time.Duration)
+
 type Stream interface {
 	io.Closer
-	Init(callBack func(out []int16, currentTime time.Duration, outputBufferDacTime time.Duration)) error
+	Init(callBack StreamCallback) error
 	Start() error
 	Stop() error
 	SetVolume(volume float64)
-	CurrentTime() time.Duration
 }
 
 type Player struct {
@@ -54,7 +55,7 @@ func (p *Player) callBack(out []int16, currentTime time.Duration, outputBufferDa
 		p.fillSilence(out)
 	} else {
 		frame, err = p.ringBuffer.TryPop()
-		for int64(frame.(*PCMFrame).Timestamp) < rtpTime-1024 {
+		for err != ErrIsEmpty && int64(frame.(*PCMFrame).Timestamp) < rtpTime-1024 {
 			frame, err = p.ringBuffer.TryPop()
 		}
 		if err == ErrIsEmpty {

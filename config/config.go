@@ -11,11 +11,11 @@ import (
 )
 
 type Configuration struct {
-	AlsaPortName  string  `json:"alsa-port-name"`
-	AlsaMixerName string  `json:"alsa-mixer-name"`
 	Volume        float64 `json:"sound-volume"`
 	DeviceUUID    string  `json:"device-uuid"`
-	DeviceName    string
+	AlsaPortName  string  `json:"-"`
+	AlsaMixerName string  `json:"-"`
+	DeviceName    string  `json:"-"`
 	exitsSignals  chan os.Signal
 }
 

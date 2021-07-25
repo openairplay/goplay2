@@ -1,13 +1,12 @@
-//+build linux
+//+build never
 
 package audio
 
 import (
-	"errors"
-	"exec"
-	"github.com/albanseurat/goalsa"
+	"goplay2/alsa"
 	"goplay2/config"
 	"math"
+	"os/exec"
 	"strconv"
 )
 
@@ -20,7 +19,7 @@ func NewStream() Stream {
 	return &AlsaSteam{}
 }
 
-func (s *AlsaSteam) Init() error {
+func (s *AlsaSteam) Init(callBack StreamCallback) error {
 	var err error
 	if s.device, err = alsa.NewPlaybackDevice(config.Config.AlsaPortName, 2, alsa.FormatS16LE, 44100, alsa.BufferParams{}); err != nil {
 		return err
@@ -41,20 +40,6 @@ func (s *AlsaSteam) Stop() error {
 	return s.device.Drop()
 }
 
-func (s *AlsaSteam) Write(output []int16) error {
-	ret, err := s.device.Write(output)
-	if err == alsa.ErrUnderrun {
-		return underflow
-	}
-	if err != nil {
-		return err
-	}
-	if ret != len(output) {
-		return errors.New("number of bytes written is not good")
-	}
-	return nil
-}
-
 // TODO : use real alsa function rather than launching a command
 func (s *AlsaSteam) SetVolume(volume float64) {
 	vol := math.Abs(volume)
@@ -68,3 +53,4 @@ func (s *AlsaSteam) SetVolume(volume float64) {
 		cmd.Run()
 	}
 }
+
