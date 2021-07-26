@@ -38,23 +38,33 @@ The goal is to have an *Opinionated* implementation, with only some features but
 
 ## How to build ( works on Linux and MacOsX)
 
-* Clone the repository 
-  
-* Get Dependencies (`-d` means no direct build)
+* Clone the repository
+````
+git clone https://github.com/openairplay/goplay2.git
+```` 
+* Build goplay2 
 
 ```shell
-go get -d 
-```
-
-* Build dependency (go-fdkacc), and the program 
-
-```shell
-make 
+go build  
 ```
 
 ### Dependencies 
 
-You need to have binutils, libtool, portaudio-dev, libasound2-dev, gcc and go runtime installed to build this program
+You need to have portaudio-dev, pulseaudio and lib-fdk-aac and go runtime installed to build this program
+
+#### Ubuntu build 21.4
+
+````shell
+sudo apt install golang-go libfdk-aac-dev
+````
+
+#### Mac os build 
+
+* Having xcode properly installed (clang needed)
+
+````shell
+brew install portaudio fdk-aac go 
+````
 
 ### Docker image
 

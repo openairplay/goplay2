@@ -20,12 +20,20 @@
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 // The aac decoder, to decode the encoded aac frame to PCM samples.
-package fdkaac
+package codec
 
 /*
-#cgo CFLAGS: -I${SRCDIR}/fdk-aac-lib/objs/include/fdk-aac
-#cgo LDFLAGS: ${SRCDIR}/fdk-aac-lib/objs/lib/libfdk-aac.a -lm
+
+#cgo darwin CFLAGS: -I/usr/local/Cellar/fdk-aac/2.0.2/include/fdk-aac
+#cgo darwin LDFLAGS: -L/usr/local/Cellar/fdk-aac/2.0.2/lib -lfdk-aac -lm
+
+#cgo linux LDFLAGS: -lfdk-aac -lm
+
+#ifdef __linux__
+#include "fdk-aac/aacdecoder_lib.h"
+#else
 #include "aacdecoder_lib.h"
+#endif
 
 typedef struct {
 	HANDLE_AACDECODER dec;
