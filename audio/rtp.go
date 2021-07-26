@@ -2,9 +2,9 @@ package audio
 
 import (
 	"encoding/binary"
-	aac "github.com/albanseurat/go-fdkaac"
 	"github.com/brutella/hc/crypto/chacha20poly1305"
 	"github.com/pion/rtp"
+	"goplay2/codec"
 )
 
 type TcpPacket struct {
@@ -21,7 +21,7 @@ func (p *PCMFrame) Data() []byte {
 	return p.pcmData
 }
 
-func NewFrame(aacDecoder *aac.AacDecoder, sharedKey []byte, rawPacket []byte) (*PCMFrame, error) {
+func NewFrame(aacDecoder *codec.AacDecoder, sharedKey []byte, rawPacket []byte) (*PCMFrame, error) {
 	var err error
 	packet := TcpPacket{}
 	if err = packet.Unmarshal(rawPacket); err != nil {

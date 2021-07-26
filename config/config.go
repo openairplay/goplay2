@@ -11,19 +11,17 @@ import (
 )
 
 type Configuration struct {
-	Volume        float64 `json:"sound-volume"`
-	DeviceUUID    string  `json:"device-uuid"`
-	AlsaPortName  string  `json:"-"`
-	AlsaMixerName string  `json:"-"`
-	DeviceName    string  `json:"-"`
-	exitsSignals  chan os.Signal
+	Volume       float64 `json:"sound-volume"`
+	DeviceUUID   string  `json:"device-uuid"`
+	PulseSink    string  `json:"-"`
+	DeviceName   string  `json:"-"`
+	exitsSignals chan os.Signal
 }
 
 var Config = &Configuration{
-	AlsaPortName:  "pcm.default",
-	AlsaMixerName: "disabled",
-	Volume:        -999,
-	DeviceUUID:    uuid.NewString(),
+	PulseSink:  "alsa_output",
+	Volume:     -999,
+	DeviceUUID: uuid.NewString(),
 }
 
 func (c *Configuration) Load() {

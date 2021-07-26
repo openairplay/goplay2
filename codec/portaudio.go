@@ -1,6 +1,6 @@
 //+build !linux
 
-package audio
+package codec
 
 import (
 	"github.com/gordonklaus/portaudio"
@@ -47,6 +47,7 @@ func (s *PortAudioStream) Stop() error {
 	return s.stream.Stop()
 }
 
-func (s *PortAudioStream) SetVolume(volume float64) {
+func (s *PortAudioStream) SetVolume(volume float64) error {
+	return nil
 	// to nothing on mac
 }

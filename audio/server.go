@@ -3,7 +3,7 @@ package audio
 import (
 	"encoding/binary"
 	"errors"
-	aac "github.com/albanseurat/go-fdkaac"
+	"goplay2/codec"
 	"goplay2/globals"
 	"io"
 	"net"
@@ -11,14 +11,14 @@ import (
 )
 
 type Server struct {
-	aacDecoder     *aac.AacDecoder
+	aacDecoder     *codec.AacDecoder
 	sharedKey      []byte
 	player         *Player
 	controlChannel chan interface{}
 }
 
 func NewServer(player *Player) *Server {
-	aacDecoder := aac.NewAacDecoder()
+	aacDecoder := codec.NewAacDecoder()
 
 	asc := []byte{0x12, 0x10}
 	if err := aacDecoder.InitRaw(asc); err != nil {

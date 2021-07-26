@@ -3,10 +3,9 @@ package audio
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
+	codec2 "goplay2/codec"
 	"goplay2/globals"
 	"goplay2/ptp"
-	"io"
 	"time"
 )
 
@@ -17,23 +16,11 @@ const (
 	PLAYING
 )
 
-var underflow = errors.New("audio underflow")
-
-type StreamCallback func(out []int16, currentTime time.Duration, outputBufferDacTime time.Duration)
-
-type Stream interface {
-	io.Closer
-	Init(callBack StreamCallback) error
-	Start() error
-	Stop() error
-	SetVolume(volume float64)
-}
-
 type Player struct {
 	ControlChannel chan globals.ControlMessage
 	clock          *Clock
 	Status         PlaybackStatus
-	stream         Stream
+	stream         codec2.Stream
 	ringBuffer     *Ring
 }
 
@@ -42,7 +29,7 @@ func NewPlayer(clock *ptp.VirtualClock, ring *Ring) *Player {
 	return &Player{
 		clock:          &Clock{clock, time.Now(), 0, 0},
 		ControlChannel: make(chan globals.ControlMessage, 100),
-		stream:         NewStream(),
+		stream:         codec2.NewStream(),
 		Status:         STOPPED,
 		ringBuffer:     ring,
 	}
@@ -101,7 +88,9 @@ func (p *Player) Run() {
 			case globals.SKIP:
 				p.skipUntil(msg.Param1, msg.Param2)
 			case globals.VOLUME:
-				p.stream.SetVolume(msg.Paramf)
+				if err := p.stream.SetVolume(msg.Paramf); err != nil {
+					globals.ErrLog.Printf("error while setting new volume : %v", err)
+				}
 			}
 		}
 	}
