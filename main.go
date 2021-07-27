@@ -14,43 +14,28 @@ import (
 	"log"
 	"net"
 	"os"
-	"strings"
 	"sync"
 )
 
 func main() {
 	var ifName string
 	var delay int64
+	var metricsFileName string
+	var err error
 
 	flag.StringVar(&config.Config.DeviceName, "n", "goplay", "Specify device name")
 	flag.StringVar(&ifName, "i", "eth0", "Specify interface")
 	flag.Int64Var(&delay, "delay", 0, "Specify hardware delay in ms")
 	flag.StringVar(&config.Config.PulseSink, "sink", config.Config.PulseSink, "Specify Pulse Audio Sink - Linux only")
+	flag.StringVar(&metricsFileName, "metrics", "/dev/null", "File name to logs audio sync - temp param")
+	flag.BoolVar(&config.Config.DisableAudioSync, "nosync", config.Config.DisableAudioSync, "Disable multi-room/audio-sync. On slow CPU multi-room can cause audio jitter")
 	flag.Parse() // after declaring flags we need to call it
 
 	config.Config.Load()
-	defer config.Config.Store()
 
 	globals.ErrLog = log.New(os.Stderr, "Error:", log.LstdFlags|log.Lshortfile|log.Lmsgprefix)
 
-	iFace, err := net.InterfaceByName(ifName)
-	if err != nil {
-		panic(err)
-	}
-	macAddress := strings.ToUpper(iFace.HardwareAddr.String())
-	ipAddresses, err := iFace.Addrs()
-	if err != nil {
-		panic(err)
-	}
-	var ipStringAddr []string
-	for _, addr := range ipAddresses {
-		switch v := addr.(type) {
-		case *net.IPNet:
-			ipStringAddr = append(ipStringAddr, v.IP.String())
-		case *net.IPAddr:
-			ipStringAddr = append(ipStringAddr, v.IP.String())
-		}
-	}
+	iFace, macAddress, ipStringAddr := config.NetworkInfo(ifName)
 	homekit.Device = homekit.NewAccessory(macAddress, config.Config.DeviceUUID, airplayDevice())
 	log.Printf("Starting goplay for device %v", homekit.Device)
 	homekit.Server, err = homekit.NewServer(macAddress, config.Config.DeviceName, ipStringAddr)
@@ -62,13 +47,16 @@ func main() {
 	}
 	defer server.Shutdown()
 
+	if metricFile, err := os.Create(metricsFileName); err == nil {
+		globals.MetricLog = log.New(metricFile, "", log.LstdFlags|log.Lshortfile|log.Lmsgprefix)
+	} else {
+		log.Panicf("Impossible to open metrics file %s", metricsFileName)
+	}
+
 	clock := ptp.NewVirtualClock(delay)
 	ptpServer := ptp.NewServer(clock)
 
-	// Divided by 100 -> average size of a RTP packet
-	audioBuffer := audio.NewRing(globals.BufferSize / 100)
-
-	player := audio.NewPlayer(clock, audioBuffer)
+	player := audio.NewPlayer(clock, &config.Config.AudioMetrics)
 
 	wg := new(sync.WaitGroup)
 	wg.Add(4)

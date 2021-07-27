@@ -4,6 +4,7 @@ package codec
 
 import (
 	"github.com/gordonklaus/portaudio"
+	"time"
 )
 
 type PortAudioStream struct {
@@ -24,7 +25,7 @@ func (s *PortAudioStream) Init(callBack StreamCallback) error {
 		callBack(out, info.CurrentTime, info.OutputBufferDacTime)
 	}
 	//TODO : get the framePerBuffer from setup
-	s.stream, err = portaudio.OpenDefaultStream(0, 2, 44100, 1024, portAudioCallback)
+	s.stream, err = portaudio.OpenDefaultStream(0, OutputChannel, SampleRate, 1024, portAudioCallback)
 	if err != nil {
 		return err
 	}
@@ -47,7 +48,11 @@ func (s *PortAudioStream) Stop() error {
 	return s.stream.Stop()
 }
 
-func (s *PortAudioStream) SetVolume(volume float64) error {
+func (s *PortAudioStream) AudioTime() time.Duration {
+	return s.stream.Time()
+}
+
+func (s *PortAudioStream) SetVolume(_ float64) error {
 	return nil
 	// to nothing on mac
 }

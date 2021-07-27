@@ -8,7 +8,6 @@ import (
 	"goplay2/config"
 	"log"
 	"math"
-	"time"
 )
 
 const (
@@ -24,7 +23,6 @@ type PaStream struct {
 	client *pulse.Client
 	stream *pulse.PlaybackStream
 	sink   *pulse.Sink
-	buffer []int16
 	index  int
 }
 
@@ -51,22 +49,6 @@ func NewStream() Stream {
 
 func (s *PaStream) Init(callBack StreamCallback) error {
 	var err error
-	streamCallback := func(out []int16) (int, error) {
-		var copied = 0
-		if s.index+rtpPacketSize < audioBufferSize {
-			callBack(s.buffer[s.index:s.index+rtpPacketSize], 0*time.Second, 0*time.Second)
-			copied = copy(out, s.buffer[:s.index+rtpPacketSize])
-			s.index += rtpPacketSize - copied
-		} else {
-			copied = copy(out, s.buffer[:s.index])
-			s.index -= copied
-		}
-		copy(s.buffer, s.buffer[copied:])
-		if s.index < 0 {
-			s.index = 0
-		}
-		return copied, nil
-	}
 	s.sink, err = s.client.SinkByID(config.Config.PulseSink)
 	if err != nil {
 		s.sink, err = s.client.DefaultSink()
@@ -74,7 +56,7 @@ func (s *PaStream) Init(callBack StreamCallback) error {
 	if err != nil {
 		return err
 	}
-	s.stream, err = s.client.NewPlayback(pulse.Int16Reader(streamCallback),
+	s.stream, err = s.client.NewPlayback(pulse.Int16Reader(callBack),
 		pulse.PlaybackStereo,
 		pulse.PlaybackBufferSize(1024),
 		pulse.PlaybackSink(s.sink),
@@ -82,9 +64,13 @@ func (s *PaStream) Init(callBack StreamCallback) error {
 	if err != nil {
 		return err
 	}
-
-	s.buffer = make([]int16, audioBufferSize)
-
+	/*now := time.Now()
+	reply := &proto.GetPlaybackLatencyReply{}
+	s.client.RawRequest(&proto.GetPlaybackLatency{
+		StreamIndex: s.stream.StreamIndex(),
+		Time: proto.Time{ Seconds: uint32(now.Unix()), Microseconds: uint32((now.UnixNano() - now.Unix()*1e9) / 1000)},
+	}, reply)
+	s.latency = reply.Latency */
 	return nil
 }
 
@@ -114,7 +100,6 @@ func (*SetSinkVolume) command() uint32 {
 }
 
 func (s *PaStream) SetVolume(volume float64) error {
-
 	linearVolume := dbToLinearVolume(volume)
 	vols := make(proto.ChannelVolumes, 2)
 

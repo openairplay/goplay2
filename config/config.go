@@ -5,23 +5,28 @@ import (
 	"github.com/google/uuid"
 	"io/ioutil"
 	"log"
+	"net"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 )
 
 type Configuration struct {
-	Volume       float64 `json:"sound-volume"`
-	DeviceUUID   string  `json:"device-uuid"`
-	PulseSink    string  `json:"-"`
-	DeviceName   string  `json:"-"`
-	exitsSignals chan os.Signal
+	Volume           float64 `json:"sound-volume"`
+	DeviceUUID       string  `json:"device-uuid"`
+	PulseSink        string  `json:"-"`
+	DeviceName       string  `json:"-"`
+	DisableAudioSync bool    `json:"-"`
+	AudioMetrics     Metrics `json:"-"`
+	exitsSignals     chan os.Signal
 }
 
 var Config = &Configuration{
-	PulseSink:  "",
-	Volume:     -999,
-	DeviceUUID: uuid.NewString(),
+	PulseSink:        "",
+	Volume:           -999,
+	DeviceUUID:       uuid.NewString(),
+	DisableAudioSync: false,
 }
 
 func (c *Configuration) Load() {
@@ -35,6 +40,7 @@ func (c *Configuration) Load() {
 	go func() {
 		<-c.exitsSignals
 		c.Store()
+		c.AudioMetrics.Store(c.DeviceName)
 		os.Exit(0)
 	}()
 }
@@ -48,4 +54,27 @@ func (c *Configuration) Store() {
 	if err != nil {
 		log.Printf("Warning : impossible to store config file %s \n", c.DeviceName+"/config.json")
 	}
+}
+
+func NetworkInfo(ifName string) (*net.Interface, string, []string) {
+	iFace, err := net.InterfaceByName(ifName)
+	if err != nil {
+		panic(err)
+	}
+	macAddress := strings.ToUpper(iFace.HardwareAddr.String())
+	ipAddresses, err := iFace.Addrs()
+	if err != nil {
+		panic(err)
+	}
+	var ipStringAddr []string
+	for _, addr := range ipAddresses {
+		switch v := addr.(type) {
+		case *net.IPNet:
+			ipStringAddr = append(ipStringAddr, v.IP.String())
+		case *net.IPAddr:
+			ipStringAddr = append(ipStringAddr, v.IP.String())
+		}
+	}
+
+	return iFace, macAddress, ipStringAddr
 }
