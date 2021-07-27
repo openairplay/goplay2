@@ -53,11 +53,23 @@ go build
 
 You need to have portaudio-dev, pulseaudio and lib-fdk-aac and go runtime installed to build this program
 
-#### Ubuntu build 21.4
+#### Ubuntu 21.4 build
 
 ````shell
 sudo apt install golang-go libfdk-aac-dev
 ````
+
+#### Rasbpian (buster)
+fdk-aac is not provided by default, you have to change your source.list (as root or using sudo)
+
+````
+echo "deb http://www.deb-multimedia.org buster main non-free" >> /etc/apt/sources.list
+apt-get update -oAcquire::AllowInsecureRepositories=true
+apt-get install deb-multimedia-keyring -y
+apt-get install libfdk-aac-dev
+````
+
+You also need to install go from https://golang.org/dl/ as version 1.16 is not supplied by buster (they only support 1.11)
 
 #### Mac os build 
 
