@@ -19,7 +19,7 @@ type Configuration struct {
 }
 
 var Config = &Configuration{
-	PulseSink:  "alsa_output",
+	PulseSink:  "",
 	Volume:     -999,
 	DeviceUUID: uuid.NewString(),
 }

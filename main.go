@@ -25,7 +25,7 @@ func main() {
 	flag.StringVar(&config.Config.DeviceName, "n", "goplay", "Specify device name")
 	flag.StringVar(&ifName, "i", "eth0", "Specify interface")
 	flag.Int64Var(&delay, "delay", 0, "Specify hardware delay in ms")
-	flag.StringVar(&config.Config.PulseSink, "pa-sink", config.Config.PulseSink, "Specify Pulse Audio Sink - Linux only")
+	flag.StringVar(&config.Config.PulseSink, "sink", config.Config.PulseSink, "Specify Pulse Audio Sink - Linux only")
 	flag.Parse() // after declaring flags we need to call it
 
 	config.Config.Load()

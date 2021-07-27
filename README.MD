@@ -14,6 +14,8 @@ The goal is to have an *Opinionated* implementation, with only some features but
 * Sync with HomePod mini
 * PTP supported 
 * **Working** on a Rasbperry 1
+* Set Volume 
+* Support PulseAudio (and can select sink)
 
 #### Nexts  
 
@@ -21,7 +23,6 @@ The goal is to have an *Opinionated* implementation, with only some features but
 * P2 - Play ALAC
 * P3 - Supports Spotify (RTP over UDP, type 96) 
 * P4 - NIC hardware timestamp (linux)
-* P5 - Better alsa integration (linux)
 
 #### Will not support
 
@@ -89,7 +90,20 @@ docker run -p 7000:7000 -it albanseurat/goplay2:latest
 
 ## Run
 
-goplay2 by default run only on the ipv4 interface (because [this issue](https://github.com/golang/go/issues/31024) on ipv6 parsing) 
+- goplay2 by default run only on the ipv4 interface (because [this issue](https://github.com/golang/go/issues/31024) on ipv6 parsing) 
+
+#### Linux 
+
+- goplay2 should not be run as root to use pulseaudio server
+- goplay2 need to have special privileges to open PTP port (319,320)
+
+to allow goplay2 to open port below 1024 you need to run 
+
+````
+setcap 'cap_net_bind_service=+ep' ./goplay2 
+````
+
+nb: should be re-run every time you build goplay2 
 
 #### Parameters 
 
@@ -100,12 +114,11 @@ Ex: It takes around 60ms on my mac to launch the audio stream at the **Anchor Ti
 
 `n` (name) used as accessory name (Bonjour) 
 
-`alsa` (alsa port name) to replace default pcm port (default : pcm.default)
+`sink` (pulse audio sink name) to replace default sink
 
-`alsamixer` (alsa mixer control) used for volume control (default : disabled)
-
+Example : 
 ```shell
-./goplay2 -alsa pcm.default -i en0 -n aiwa
+./goplay2 -sink alsa_output -i en0 -n aiwa
 ```
 
 
