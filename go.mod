@@ -8,11 +8,7 @@ require (
 	github.com/google/uuid v1.2.0
 	github.com/gordonklaus/portaudio v0.0.0-20200911161147-bb74aa485641
 	github.com/grandcat/zeroconf v1.0.0
-	github.com/jfreymuth/pulse v0.1.0
+	github.com/jfreymuth/pulse v0.1.1-0.20210727160034-392febcff724
 	github.com/pion/rtp v1.6.5
 	howett.net/plist v0.0.0-20201203080718-1454fab16a06
-)
-
-replace (
-	github.com/jfreymuth/pulse => ../pulse
 )
