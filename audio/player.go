@@ -36,25 +36,15 @@ func NewPlayer(clock *ptp.VirtualClock, ring *Ring) *Player {
 }
 
 func (p *Player) callBack(out []int16, currentTime time.Duration, outputBufferDacTime time.Duration) {
-	rtpTime := p.clock.CurrentRtpTime()
-	frame, err := p.ringBuffer.TryPeek()
-	if err == ErrIsEmpty || int64(frame.(*PCMFrame).Timestamp) > rtpTime {
+	frame, err := p.ringBuffer.TryPop()
+	if err == ErrIsEmpty {
 		p.fillSilence(out)
 	} else {
-		frame, err = p.ringBuffer.TryPop()
-		for err != ErrIsEmpty && int64(frame.(*PCMFrame).Timestamp) < rtpTime-1024 {
-			frame, err = p.ringBuffer.TryPop()
-		}
-		if err == ErrIsEmpty {
-			p.fillSilence(out)
-		} else {
-			err = binary.Read(bytes.NewReader(frame.(*PCMFrame).pcmData), binary.LittleEndian, out)
-			if err != nil {
-				globals.ErrLog.Printf("error reading data : %v\n", err)
-			}
+		err = binary.Read(bytes.NewReader(frame.(*PCMFrame).pcmData), binary.LittleEndian, out)
+		if err != nil {
+			globals.ErrLog.Printf("error reading data : %v\n", err)
 		}
 	}
-	p.clock.IncRtpTime()
 }
 
 func (p *Player) Run() {
