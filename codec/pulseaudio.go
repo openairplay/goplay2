@@ -116,7 +116,6 @@ func (*SetSinkVolume) command() uint32 {
 func (s *PaStream) SetVolume(volume float64) error {
 
 	linearVolume := dbToLinearVolume(volume)
-
 	vols := make(proto.ChannelVolumes, 2)
 
 	vols[0] = linearVolume

@@ -112,6 +112,7 @@ func (p *Player) Reset() {
 }
 
 func (p *Player) fillSilence(out []int16) {
+	globals.ErrLog.Printf("warning : filling audio buffer with silence")
 	for i := range out {
 		out[i] = 0
 	}
