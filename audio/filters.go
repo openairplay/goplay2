@@ -18,8 +18,8 @@ type FilterSync struct {
 	}
 }
 
-func (p *FilterSync) apply(playTime time.Time, sequence uint32, startTs uint32) TimingDecision {
-	driftTime := p.clock.PacketTime(int64(startTs)).Sub(playTime)
+func (p *FilterSync) apply(nextTime time.Time, sequence uint32, startTs uint32) TimingDecision {
+	driftTime := p.clock.PacketTime(int64(startTs)).Sub(nextTime)
 	p.metrics.Drift(driftTime)
 	if sequence <= p.untilSeq || driftTime < -23*time.Millisecond {
 		p.metrics.Drop()
@@ -28,7 +28,7 @@ func (p *FilterSync) apply(playTime time.Time, sequence uint32, startTs uint32) 
 		p.metrics.Silence()
 		return DELAY
 	}
-	p.skew(playTime, startTs)
+	p.skew(nextTime, startTs)
 	return PLAY
 }
 
@@ -40,7 +40,6 @@ func (p *FilterSync) FlushSequence(resetValue uint32) {
 // if improvement are needed : https://hal.archives-ouvertes.fr/hal-02158803/document
 func (p *FilterSync) skew(playTime time.Time, timestamp uint32) float64 {
 	realTimeStamp := p.clock.PacketTime(int64(timestamp))
-
 	e0 := float64(playTime.Sub(p.skewInfo.oldPlayTime)) / float64(realTimeStamp.Sub(p.skewInfo.oldTimeStamp))
 	p.skewInfo.skewAverage += (e0 - p.skewInfo.skewAverage) / 16
 
@@ -50,8 +49,6 @@ func (p *FilterSync) skew(playTime time.Time, timestamp uint32) float64 {
 	return p.skewInfo.skewAverage
 }
 
-func (f * FilterSync) GetLatestAudioSkew() float64 {
+func (f *FilterSync) GetLatestAudioSkew() float64 {
 	return f.skewInfo.skewAverage
 }
-
-

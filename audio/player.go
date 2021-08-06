@@ -25,7 +25,7 @@ type Player struct {
 	stream         codec.Stream
 	ring           *Ring
 	aacDecoder     *codec.AacDecoder
-	syncMethod     func(playTime time.Time, sequence uint32, startTs uint32) TimingDecision
+	syncMethod     func(nextTime time.Time, sequence uint32, startTs uint32) TimingDecision
 }
 
 func NewPlayer(clock *ptp.VirtualClock, metrics *config.Metrics) *Player {
@@ -66,8 +66,8 @@ func (p *Player) noAudioSync(_ time.Time, sequence uint32, _ uint32) TimingDecis
 
 func (p *Player) callBack(out []int16, currentTime time.Duration, outputBufferDacTime time.Duration) (int, error) {
 	playTime := p.clock.PlayTime(currentTime, outputBufferDacTime)
-	size, err := p.ring.TryRead(out, func(sequence uint32, startTs uint32) TimingDecision {
-		return p.syncMethod(playTime, sequence, startTs)
+	size, err := p.ring.TryRead(out, playTime, func(nextTime time.Time, sequence uint32, startTs uint32) TimingDecision {
+		return p.syncMethod(nextTime, sequence, startTs)
 	})
 	if err == ErrIsEmpty {
 		p.fillSilence(out)
