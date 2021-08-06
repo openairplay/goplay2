@@ -20,12 +20,11 @@ const (
 type Player struct {
 	ControlChannel chan globals.ControlMessage
 	clock          *Clock
+	filter         *FilterSync
 	Status         PlaybackStatus
 	stream         codec.Stream
 	ring           *Ring
 	aacDecoder     *codec.AacDecoder
-	metrics        *config.Metrics
-	untilSeq       uint32
 	syncMethod     func(playTime time.Time, sequence uint32, startTs uint32) TimingDecision
 }
 
@@ -35,39 +34,31 @@ func NewPlayer(clock *ptp.VirtualClock, metrics *config.Metrics) *Player {
 	if err := aacDecoder.InitRaw(asc); err != nil {
 		globals.ErrLog.Panicf("init decoder failed, err is %s", err)
 	}
+	audioClock := NewClock(clock)
+	filter := &FilterSync{
+		clock:   audioClock,
+		metrics: metrics,
+	}
+
 	player := &Player{
-		clock:          NewClock(clock),
+		clock:          audioClock,
+		filter:         filter,
 		ControlChannel: make(chan globals.ControlMessage, 100),
 		aacDecoder:     aacDecoder,
 		stream:         codec.NewStream(),
 		Status:         STOPPED,
 		ring:           New(globals.BufferSize / 2048),
-		metrics:        metrics,
 	}
 	if config.Config.DisableAudioSync {
 		player.syncMethod = player.noAudioSync
 	} else {
-		player.syncMethod = player.audioSync
+		player.syncMethod = filter.apply
 	}
-
 	return player
 }
 
-func (p *Player) audioSync(playTime time.Time, sequence uint32, startTs uint32) TimingDecision {
-	driftTime := p.clock.PacketTime(int64(startTs)).Sub(playTime)
-	p.metrics.Drift(driftTime)
-	if sequence <= p.untilSeq || driftTime < -23*time.Millisecond {
-		p.metrics.Drop()
-		return DISCARD
-	} else if driftTime > 23*time.Millisecond {
-		p.metrics.Silence()
-		return DELAY
-	}
-	return PLAY
-}
-
 func (p *Player) noAudioSync(_ time.Time, sequence uint32, _ uint32) TimingDecision {
-	if sequence <= p.untilSeq {
+	if sequence <= p.filter.untilSeq {
 		return DISCARD
 	}
 	return PLAY
@@ -142,7 +133,7 @@ func (p *Player) skipUntil(fromSeq int64, untilSeq int64) {
 		return sequence > uint32(fromSeq) && sequence < uint32(untilSeq)
 	})
 	// some data are possibly not yet in the buffer - reader should skip them afterwards (during async callback)
-	p.untilSeq = uint32(untilSeq)
+	p.filter.FlushSequence(uint32(untilSeq))
 }
 
 func (p *Player) Push(frame *rtp.Frame) {
@@ -156,11 +147,10 @@ func (p *Player) Push(frame *rtp.Frame) {
 
 func (p *Player) Reset() {
 	p.ring.Reset()
-	p.untilSeq = 0
+	p.filter.FlushSequence(0)
 }
 
 func (p *Player) fillSilence(out []int16) {
-	p.metrics.Silence()
 	for i := range out {
 		out[i] = 0
 	}
