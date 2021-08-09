@@ -21,14 +21,19 @@ import (
 func main() {
 	var ifName string
 	var delay int64
+	var configurationBaseDir string
 
+	flag.StringVar(&configurationBaseDir, "c", ".", "Configuration base directory (default to current directory)")
 	flag.StringVar(&config.Config.DeviceName, "n", "goplay", "Specify device name")
 	flag.StringVar(&ifName, "i", "eth0", "Specify interface")
 	flag.Int64Var(&delay, "delay", 0, "Specify hardware delay in ms")
 	flag.StringVar(&config.Config.PulseSink, "sink", config.Config.PulseSink, "Specify Pulse Audio Sink - Linux only")
 	flag.Parse() // after declaring flags we need to call it
 
-	config.Config.Load()
+	err := config.Config.Load(configurationBaseDir)
+	if err != nil {
+		panic(err)
+	}
 	defer config.Config.Store()
 
 	globals.ErrLog = log.New(os.Stderr, "Error:", log.LstdFlags|log.Lshortfile|log.Lmsgprefix)
