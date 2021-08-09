@@ -16,6 +16,7 @@ type Configuration struct {
 	DeviceUUID   string  `json:"device-uuid"`
 	PulseSink    string  `json:"-"`
 	DeviceName   string  `json:"-"`
+	DataDirectory string `json:"data-directory"`
 	exitsSignals chan os.Signal
 	baseDir		 string
 }
@@ -36,11 +37,15 @@ func (c *Configuration) Load(baseDir string) error {
 	}
 
 	c.baseDir = baseDir
-	configFilePath := filepath.Join(c.baseDir, c.DeviceName, "/config.json")
+	configFilePath := filepath.Join(c.baseDir, c.DeviceName, "config.json")
 	data, err := ioutil.ReadFile(configFilePath)
 	if err != nil || json.Unmarshal(data, &c) != nil {
 		log.Printf("%s is not valid - a new file will be created at program exit\n", configFilePath)
 	}
+	if c.DataDirectory == "" {
+		c.DataDirectory = baseDir
+	}
+
 	c.exitsSignals = make(chan os.Signal, 1)
 	signal.Notify(c.exitsSignals, syscall.SIGINT, syscall.SIGTERM)
 
@@ -62,7 +67,15 @@ func (c *Configuration) Store() error {
 		log.Printf("Warning: impossible to marshal configuration in json\n")
 		return err
 	}
-	configFilePath := filepath.Join(c.baseDir, c.DeviceName, "/config.json")
+	configFilePath := filepath.Join(c.baseDir, c.DeviceName, "config.json")
+	dirPath := filepath.Join(c.baseDir, c.DeviceName)
+	if _, err := os.Stat(dirPath); os.IsNotExist(err) {
+		err = os.MkdirAll(dirPath, 0755)
+		if err != nil{
+			log.Printf("Warning : impossible to create config directory %s \n", filepath.Join(c.baseDir, c.DeviceName))
+			return err
+		}
+	}
 	err = ioutil.WriteFile(configFilePath, data, 0660)
 	if err != nil {
 		log.Printf("Warning : impossible to store config file %s \n", configFilePath)

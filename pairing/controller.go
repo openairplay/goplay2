@@ -1,10 +1,11 @@
 package pairing
 
 import (
-	"fmt"
 	"github.com/brutella/hc/db"
 	"github.com/brutella/hc/hap/pair"
 	"github.com/brutella/hc/util"
+	"goplay2/config"
+	"path/filepath"
 )
 
 type Controller struct {
@@ -37,7 +38,7 @@ func (c Controller) Handle(cont util.Container) (util.Container, error) {
 }
 
 func NewController(deviceName string) (*Controller, error) {
-	storage, err := util.NewFileStorage(fmt.Sprintf("%s/db", deviceName))
+	storage, err := util.NewFileStorage(filepath.Join(config.Config.DataDirectory, "db", deviceName))
 	if err != nil {
 		return nil, err
 	}

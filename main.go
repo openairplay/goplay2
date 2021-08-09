@@ -22,19 +22,36 @@ func main() {
 	var ifName string
 	var delay int64
 	var configurationBaseDir string
+	var flagsConfig config.Configuration
 
-	flag.StringVar(&configurationBaseDir, "c", ".", "Configuration base directory (default to current directory)")
+	// These two are being used to construct the config path
+	// XXX if the config has been manually update, it could very well have a devicename that does not align with the directory it's in
+	flag.StringVar(&configurationBaseDir, "c", "", "Configuration base directory (default to current directory)")
 	flag.StringVar(&config.Config.DeviceName, "n", "goplay", "Specify device name")
+
+	// These two should override whatever is in the currently store config
+	flag.StringVar(&flagsConfig.DataDirectory, "d", "", "Data base directory (defaults to configuration directory)")
+	flag.StringVar(&flagsConfig.PulseSink, "sink", config.Config.PulseSink, "Specify Pulse Audio Sink - Linux only")
+
+	// These are not stored in permanent config
 	flag.StringVar(&ifName, "i", "eth0", "Specify interface")
 	flag.Int64Var(&delay, "delay", 0, "Specify hardware delay in ms")
-	flag.StringVar(&config.Config.PulseSink, "sink", config.Config.PulseSink, "Specify Pulse Audio Sink - Linux only")
 	flag.Parse() // after declaring flags we need to call it
 
+	// Load the possibly existing config
 	err := config.Config.Load(configurationBaseDir)
 	if err != nil {
 		panic(err)
 	}
 	defer config.Config.Store()
+
+	// Override config specifics with command-line flags
+	if flagsConfig.DataDirectory != "" {
+		config.Config.DataDirectory = flagsConfig.DataDirectory
+	}
+	if flagsConfig.PulseSink != "" {
+		config.Config.PulseSink = flagsConfig.PulseSink
+	}
 
 	globals.ErrLog = log.New(os.Stderr, "Error:", log.LstdFlags|log.Lshortfile|log.Lmsgprefix)
 
