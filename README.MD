@@ -81,24 +81,53 @@ brew install portaudio fdk-aac go
 
 ### Docker image
 
-You can build the image to test Linux build and that the service run properly 
+You can build and run the image to quickly test goplay, though this is experimental right now and comes with caveats.
 
 * Build the image
 
+The following platforms are supported: linux/amd64, linux/arm64, linux/arm/v7.
+Other platforms should also build.
+
+You can build with docker directly:
 ```shell
-docker build -t albanseurat/goplay2:latest .
+docker build --platform=linux/amd64 -t you/goplay2 .
 ```
+
+Or with buildctl / buildkit if you want to assemble a multi-arch image.
 
 * Run the container
 
-```shell
-docker run -p 7000:7000 -it albanseurat/goplay2:latest
+This image currently does not provide a way to run pulseaudio inside the container itself, and pulseaudio is expected 
+to be available and running on the host for this to work.
+
+On debian variants, this is typically as simple as:
+```
+sudo apt-get install pulseaudio
+pulseaudio --start
 ```
 
-#### Acknowledgments  
+To then run the container
+```shell
+export STATION_NAME="GoplaySpeaker"
 
-* Docker build is intended to test building the program on Linux platform
-* Bonjour/mDns implementation needs to be changed to allow exposing airplay service outside docker container
+mkdir -p "$(pwd)/$STATION_NAME"
+
+docker run \
+	--rm \
+	--name goplay \
+	--volume "$(pwd)/$STATION_NAME":/opt/"$STATION_NAME" \
+	--volume /run/user/1000/pulse/native:/pulse \
+	--env PULSE_SERVER=/pulse \
+	--net host \
+	--cap-drop=ALL \
+	--cap-add=NET_BIND_SERVICE \
+	--read-only \
+	you/goplay2 ./goplay2 -n "$STATION_NAME"
+```
+
+Note that mDNS by design will only work with networking mode "host" (recommended for beginners) or (mac/ip)vlan.
+
+#### Acknowledgments  
 
 ## Run
 
