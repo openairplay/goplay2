@@ -24,10 +24,7 @@ package codec
 
 /*
 
-#cgo darwin CFLAGS: -I/usr/local/Cellar/fdk-aac/2.0.2/include/fdk-aac
-#cgo darwin LDFLAGS: -L/usr/local/Cellar/fdk-aac/2.0.2/lib -lfdk-aac -lm
-
-#cgo linux LDFLAGS: -L/usr/local/lib -l:libfdk-aac.a -lm
+#cgo pkg-config: fdk-aac
 
 #ifdef __linux__
 #include "fdk-aac/aacdecoder_lib.h"
