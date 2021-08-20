@@ -1,5 +1,5 @@
 # Single source stage
-FROM    --platform=$BUILDPLATFORM golang:1.16   as fetcher
+FROM    --platform=$BUILDPLATFORM golang:1.16-buster   as fetcher
 
 # Bring the source in
 COPY    . "$GOPATH"/src/github.com/albanseurat/goplay2
