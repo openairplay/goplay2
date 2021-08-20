@@ -88,12 +88,16 @@ You can build and run the image to quickly test goplay, though this is experimen
 The following platforms are supported: linux/amd64, linux/arm64, linux/arm/v7.
 Other platforms should also build.
 
-You can build with docker directly:
+You need at least docker 19.06.
+
+To build:
 ```shell
-docker build --platform=linux/amd64 -t you/goplay2 .
+docker buildx build -t you/goplay2 .
 ```
 
-Or with buildctl / buildkit if you want to assemble a multi-arch image.
+This is a multi-architecture image.
+If you have QEMU/Docker configured, you can target a different platform,
+or better, use buildctl and buildkit to produce a proper multi-architecture image.
 
 * Run the container
 
