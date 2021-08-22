@@ -3,9 +3,7 @@ package audio
 import (
 	"goplay2/codec"
 	"goplay2/config"
-	"goplay2/filters"
 	"goplay2/globals"
-	"goplay2/ptp"
 	"goplay2/rtp"
 	"log"
 	"time"
@@ -21,7 +19,7 @@ const (
 type Player struct {
 	ControlChannel chan globals.ControlMessage
 	clock          *Clock
-	filter         *filters.Filter
+	filter         Filter
 	Status         PlaybackStatus
 	stream         codec.Stream
 	ring           *Ring
@@ -29,16 +27,15 @@ type Player struct {
 	untilSeq       uint32
 }
 
-func NewPlayer(clock *ptp.VirtualClock, metrics *config.Metrics) *Player {
+func NewPlayer(audioClock *Clock, filter Filter) *Player {
 	aacDecoder := codec.NewAacDecoder()
 	asc := []byte{0x12, 0x10}
 	if err := aacDecoder.InitRaw(asc); err != nil {
 		globals.ErrLog.Panicf("init decoder failed, err is %s", err)
 	}
-	audioClock := NewClock(clock)
 	player := &Player{
 		clock:          audioClock,
-		filter:         filters.NewFilter(audioClock, metrics),
+		filter:         filter,
 		ControlChannel: make(chan globals.ControlMessage, 100),
 		aacDecoder:     aacDecoder,
 		stream:         codec.NewStream(),
@@ -57,7 +54,7 @@ func (p *Player) audioSync(nextTime time.Time, sequence uint32, startTs uint32) 
 	if config.Config.DisableAudioSync {
 		return PLAY
 	} else {
-		return p.filter.AddDrop(nextTime, sequence, startTs)
+		return p.filter.Apply(nextTime, sequence, startTs)
 	}
 }
 

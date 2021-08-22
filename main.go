@@ -6,6 +6,7 @@ import (
 	"goplay2/audio"
 	"goplay2/config"
 	"goplay2/event"
+	"goplay2/filters"
 	"goplay2/globals"
 	"goplay2/handlers"
 	"goplay2/homekit"
@@ -56,7 +57,9 @@ func main() {
 	clock := ptp.NewVirtualClock(delay)
 	ptpServer := ptp.NewServer(clock)
 
-	player := audio.NewPlayer(clock, &config.Config.AudioMetrics)
+	audioClock := audio.NewClock(clock)
+	filter := filters.NewAddDropFilter(audioClock, &config.Config.AudioMetrics)
+	player := audio.NewPlayer(audioClock, filter)
 
 	wg := new(sync.WaitGroup)
 	wg.Add(4)

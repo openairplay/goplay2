@@ -13,14 +13,14 @@ type skewData struct {
 	skewAverage  float64
 }
 
-type Filter struct {
+type AddDropFilter struct {
 	clock    *audio.Clock
 	metrics  *config.Metrics
 	skewInfo skewData
 }
 
-func NewFilter(clock *audio.Clock, metrics *config.Metrics) *Filter {
-	return &Filter{
+func NewAddDropFilter(clock *audio.Clock, metrics *config.Metrics) *AddDropFilter {
+	return &AddDropFilter{
 		clock:   clock,
 		metrics: metrics,
 		skewInfo: skewData{
@@ -31,7 +31,7 @@ func NewFilter(clock *audio.Clock, metrics *config.Metrics) *Filter {
 	}
 }
 
-func (p *Filter) AddDrop(nextTime time.Time, sequence uint32, startTs uint32) audio.TimingDecision {
+func (p *AddDropFilter) Apply(nextTime time.Time, sequence uint32, startTs uint32) audio.TimingDecision {
 	driftTime := p.clock.PacketTime(int64(startTs)).Sub(nextTime)
 	p.metrics.Drift(driftTime)
 	if driftTime < -23*time.Millisecond {
@@ -45,13 +45,9 @@ func (p *Filter) AddDrop(nextTime time.Time, sequence uint32, startTs uint32) au
 	return audio.PLAY
 }
 
-func (p *Filter) Resample(_ time.Time, _ uint32, _ uint32) audio.TimingDecision {
-	return audio.PLAY
-}
-
 // https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.125.8673&rep=rep1&type=pdf
 // if improvement are needed : https://hal.archives-ouvertes.fr/hal-02158803/document
-func (p *Filter) skew(playTime time.Time, timestamp uint32) float64 {
+func (p *AddDropFilter) skew(playTime time.Time, timestamp uint32) float64 {
 	realTimeStamp := p.clock.PacketTime(int64(timestamp))
 	e0 := float64(playTime.Sub(p.skewInfo.oldPlayTime)) / float64(realTimeStamp.Sub(p.skewInfo.oldTimeStamp))
 	p.skewInfo.skewAverage += (e0 - p.skewInfo.skewAverage) / 16
