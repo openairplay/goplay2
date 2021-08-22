@@ -3,6 +3,7 @@ package audio
 import (
 	"goplay2/codec"
 	"goplay2/config"
+	"goplay2/filters"
 	"goplay2/globals"
 	"goplay2/ptp"
 	"goplay2/rtp"
@@ -20,12 +21,12 @@ const (
 type Player struct {
 	ControlChannel chan globals.ControlMessage
 	clock          *Clock
-	filter         *FilterSync
+	filter         *filters.Filter
 	Status         PlaybackStatus
 	stream         codec.Stream
 	ring           *Ring
 	aacDecoder     *codec.AacDecoder
-	syncMethod     func(nextTime time.Time, sequence uint32, startTs uint32) TimingDecision
+	untilSeq       uint32
 }
 
 func NewPlayer(clock *ptp.VirtualClock, metrics *config.Metrics) *Player {
@@ -35,39 +36,35 @@ func NewPlayer(clock *ptp.VirtualClock, metrics *config.Metrics) *Player {
 		globals.ErrLog.Panicf("init decoder failed, err is %s", err)
 	}
 	audioClock := NewClock(clock)
-	filter := &FilterSync{
-		clock:   audioClock,
-		metrics: metrics,
-	}
-
 	player := &Player{
 		clock:          audioClock,
-		filter:         filter,
+		filter:         filters.NewFilter(audioClock, metrics),
 		ControlChannel: make(chan globals.ControlMessage, 100),
 		aacDecoder:     aacDecoder,
 		stream:         codec.NewStream(),
 		Status:         STOPPED,
 		ring:           New(globals.BufferSize / 2048),
-	}
-	if config.Config.DisableAudioSync {
-		player.syncMethod = player.noAudioSync
-	} else {
-		player.syncMethod = filter.apply
+		untilSeq:       0,
 	}
 	return player
 }
 
-func (p *Player) noAudioSync(_ time.Time, sequence uint32, _ uint32) TimingDecision {
-	if sequence <= p.filter.untilSeq {
+func (p *Player) audioSync(nextTime time.Time, sequence uint32, startTs uint32) TimingDecision {
+	if sequence <= p.untilSeq {
 		return DISCARD
 	}
-	return PLAY
+
+	if config.Config.DisableAudioSync {
+		return PLAY
+	} else {
+		return p.filter.AddDrop(nextTime, sequence, startTs)
+	}
 }
 
 func (p *Player) callBack(out []int16, currentTime time.Duration, outputBufferDacTime time.Duration) (int, error) {
 	playTime := p.clock.PlayTime(currentTime, outputBufferDacTime)
 	size, err := p.ring.TryRead(out, playTime, func(nextTime time.Time, sequence uint32, startTs uint32) TimingDecision {
-		return p.syncMethod(nextTime, sequence, startTs)
+		return p.audioSync(nextTime, sequence, startTs)
 	})
 	if err == ErrIsEmpty {
 		p.fillSilence(out)
@@ -133,7 +130,7 @@ func (p *Player) skipUntil(fromSeq int64, untilSeq int64) {
 		return sequence > uint32(fromSeq) && sequence < uint32(untilSeq)
 	})
 	// some data are possibly not yet in the buffer - reader should skip them afterwards (during async callback)
-	p.filter.FlushSequence(uint32(untilSeq))
+	p.untilSeq = uint32(untilSeq)
 }
 
 func (p *Player) Push(frame *rtp.Frame) {
@@ -147,7 +144,7 @@ func (p *Player) Push(frame *rtp.Frame) {
 
 func (p *Player) Reset() {
 	p.ring.Reset()
-	p.filter.FlushSequence(0)
+	p.untilSeq = 0
 }
 
 func (p *Player) fillSilence(out []int16) {
