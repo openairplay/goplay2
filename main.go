@@ -58,7 +58,10 @@ func main() {
 	ptpServer := ptp.NewServer(clock)
 
 	audioClock := audio.NewClock(clock)
-	filter := filters.NewAddDropFilter(audioClock, &config.Config.AudioMetrics)
+	filter, err := filters.NewResamplingFilter(audioClock, &config.Config.AudioMetrics)
+	if err != nil {
+		panic(err)
+	}
 	player := audio.NewPlayer(audioClock, filter)
 
 	wg := new(sync.WaitGroup)

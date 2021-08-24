@@ -46,23 +46,20 @@ func NewPlayer(audioClock *Clock, filter Filter) *Player {
 	return player
 }
 
-func (p *Player) audioSync(nextTime time.Time, sequence uint32, startTs uint32) TimingDecision {
+func (p *Player) audioSync(reader Stream, samples []int16, nextTime time.Time, sequence uint32, startTs uint32) (int, error) {
 	if sequence <= p.untilSeq {
-		return DISCARD
+		return 0, nil
 	}
-
 	if config.Config.DisableAudioSync {
-		return PLAY
+		return reader.Read(samples)
 	} else {
-		return p.filter.Apply(nextTime, sequence, startTs)
+		return p.filter.Apply(reader, samples, nextTime, sequence, startTs)
 	}
 }
 
 func (p *Player) callBack(out []int16, currentTime time.Duration, outputBufferDacTime time.Duration) (int, error) {
 	playTime := p.clock.PlayTime(currentTime, outputBufferDacTime)
-	size, err := p.ring.TryRead(out, playTime, func(nextTime time.Time, sequence uint32, startTs uint32) TimingDecision {
-		return p.audioSync(nextTime, sequence, startTs)
-	})
+	size, err := p.ring.TryRead(out, playTime, p.audioSync)
 	if err == ErrIsEmpty {
 		p.fillSilence(out)
 	} else if size < len(out) {

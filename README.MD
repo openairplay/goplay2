@@ -146,8 +146,6 @@ docker run \
 
 Note that mDNS by design will only work with networking mode "host" (recommended for beginners) or (mac/ip)vlan.
 
-#### Acknowledgments  
-
 ## Run
 
 - goplay2 by default run only on the ipv4 interface (because [this issue](https://github.com/golang/go/issues/31024) on ipv6 parsing) 

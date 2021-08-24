@@ -28,15 +28,23 @@ func (b *markedBuffer) data() []int16 {
 	return b.buffer
 }
 
-func (b *markedBuffer) read(samples []int16) (int, error) {
-	copied := copy(samples, b.buffer)
-	if copied < len(b.buffer) {
-		b.buffer = b.buffer[copied:]
-		b.startTs += uint32(copied)
-		return copied, ErrIsPartial
+func (b *markedBuffer) Peek(samples []int16) (int, error) {
+	return copy(samples, b.buffer), nil
+}
+
+func (b *markedBuffer) Seek(size int) (int, error) {
+	if size < len(b.buffer) {
+		b.buffer = b.buffer[size:]
+		b.startTs += uint32(size)
+		return size, ErrIsPartial
 	} else {
-		return copied, nil
+		return size, nil
 	}
+}
+
+func (b *markedBuffer) Read(samples []int16) (int, error) {
+	copied, _ := b.Peek(samples)
+	return b.Seek(copied)
 }
 
 type TimingDecision uint8
@@ -47,7 +55,27 @@ const (
 	DELAY                  // will play silence
 )
 
+type Stream interface {
+	Peek(p []int16) (n int, err error)
+	Seek(size int) (n int, err error)
+	Read(p []int16) (n int, err error)
+}
+
 type TimingPredicate func(playTime time.Time, sequence uint32, startTs uint32) TimingDecision
+type FilterFunction func(audioStream Stream, samples []int16, playTime time.Time, sequence uint32, startTs uint32) (int, error)
+
+func FilterWithPredicate(predicate TimingPredicate) FilterFunction {
+	return func(audioStream Stream, samples []int16, playTime time.Time, sequence uint32, startTs uint32) (int, error) {
+		command := predicate(playTime, sequence, startTs)
+		if command == PLAY {
+			return audioStream.Read(samples)
+		} else if command == DELAY {
+			return 0, ErrIsEmpty
+		}
+		// DISCARD
+		return 0, nil
+	}
+}
 
 // Ring is a circular buffer that implement io.ReaderWriter interface.
 type Ring struct {
@@ -88,7 +116,7 @@ func (r *Ring) TryWrite(samples []int16, sequence uint32, ts uint32) error {
 	return nil
 }
 
-func (r *Ring) TryRead(samples []int16, playTime time.Time, predicate TimingPredicate) (int, error) {
+func (r *Ring) TryRead(samples []int16, playTime time.Time, filter FilterFunction) (int, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.buffers.Len() == 0 {
@@ -100,16 +128,13 @@ func (r *Ring) TryRead(samples []int16, playTime time.Time, predicate TimingPred
 	for r.buffers.Len() > 0 && n < len(samples) {
 		back := r.buffers.Back()
 		elem := back.Value.(*markedBuffer)
-		command := predicate(playTime, elem.sequence, elem.startTs)
-		playTime.Add(time.Duration(n*1e9/codec.SampleRate) * time.Nanosecond)
-		if command == PLAY {
-			size, err = elem.read(samples[n:])
-			n += size
-		} else if command == DELAY {
-			return 0, ErrIsEmpty
-		}
+		size, err = filter(elem, samples[n:], playTime, elem.sequence, elem.startTs)
+		playTime.Add(time.Duration(size*1e9/codec.SampleRate) * time.Nanosecond)
+		n += size
 		if err == nil {
 			r.buffers.Remove(back)
+		} else if err == ErrIsEmpty {
+			return 0, err
 		}
 	}
 	r.wcd.Signal()

@@ -64,13 +64,6 @@ func (s *PaStream) Init(callBack StreamCallback) error {
 	if err != nil {
 		return err
 	}
-	/*now := time.Now()
-	reply := &proto.GetPlaybackLatencyReply{}
-	s.client.RawRequest(&proto.GetPlaybackLatency{
-		StreamIndex: s.stream.StreamIndex(),
-		Time: proto.Time{ Seconds: uint32(now.Unix()), Microseconds: uint32((now.UnixNano() - now.Unix()*1e9) / 1000)},
-	}, reply)
-	s.latency = reply.Latency */
 	return nil
 }
 
