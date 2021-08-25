@@ -57,7 +57,7 @@ func (p *Player) audioSync(reader Stream, samples []int16, nextTime time.Time, s
 	}
 }
 
-func (p *Player) callBack(out []int16, currentTime time.Duration, outputBufferDacTime time.Duration) (int, error) {
+func (p *Player) callBack(out []int16, currentTime time.Duration, outputBufferDacTime time.Duration) int {
 	playTime := p.clock.PlayTime(currentTime, outputBufferDacTime)
 	size, err := p.ring.TryRead(out, playTime, p.audioSync)
 	if err == ErrIsEmpty {
@@ -65,7 +65,7 @@ func (p *Player) callBack(out []int16, currentTime time.Duration, outputBufferDa
 	} else if size < len(out) {
 		p.fillSilence(out[size:])
 	}
-	return len(out), nil
+	return p.stream.FilterVolume(out)
 }
 
 func (p *Player) Run() {

@@ -10,7 +10,7 @@ const (
 	SampleRate    = 44100
 )
 
-type StreamCallback func(out []int16, currentTime time.Duration, outputBufferDacTime time.Duration) (int, error)
+type StreamCallback func(out []int16, currentTime time.Duration, outputBufferDacTime time.Duration) int
 
 type Stream interface {
 	io.Closer
@@ -19,4 +19,5 @@ type Stream interface {
 	Stop() error
 	SetVolume(volume float64) error
 	AudioTime() time.Duration
+	FilterVolume(out []int16) int
 }

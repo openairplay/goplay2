@@ -51,12 +51,12 @@ go build
 
 ### Dependencies 
 
-You need to have portaudio-dev, pulseaudio and lib-fdk-aac and go runtime installed to build this program
+You need to have portaudio-dev, pulseaudio, libsamplerate and lib-fdk-aac and go runtime installed to build this program
 
 #### Ubuntu 21.4 build
 
 ````shell
-sudo apt install golang-go libfdk-aac-dev
+sudo apt install golang-go libfdk-aac-dev libsamplerate-dev
 ````
 
 #### Rasbpian (buster)
@@ -91,7 +91,7 @@ git clone --depth 1 https://github.com/mstorsjo/fdk-aac.git ~/ffmpeg-libraries/f
 * Having xcode properly installed (clang needed)
 
 ````shell
-brew install portaudio fdk-aac go 
+brew install portaudio fdk-aac libsamplerate go 
 ````
 
 ### Docker image

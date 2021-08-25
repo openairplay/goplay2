@@ -8,6 +8,7 @@ import (
 	"goplay2/config"
 	"log"
 	"math"
+	"time"
 )
 
 const (
@@ -20,10 +21,19 @@ const (
 )
 
 type PaStream struct {
+	creation time.Time
 	client *pulse.Client
 	stream *pulse.PlaybackStream
 	sink   *pulse.Sink
 	index  int
+}
+
+func (s *PaStream) AudioTime() time.Duration {
+	return time.Now().Sub(s.creation)
+}
+
+func (s *PaStream) FilterVolume(out []int16) int {
+	return len(out)
 }
 
 func dbToLinearVolume(volume float64) uint32 {
@@ -44,6 +54,7 @@ func NewStream() Stream {
 	}
 	return &PaStream{
 		client: client,
+		creation: time.Now(),
 	}
 }
 
@@ -56,7 +67,12 @@ func (s *PaStream) Init(callBack StreamCallback) error {
 	if err != nil {
 		return err
 	}
-	s.stream, err = s.client.NewPlayback(pulse.Int16Reader(callBack),
+	pulseAudioCallBack := func(out []int16) (int, error){
+		audioTime := s.AudioTime()
+		callBack(out, audioTime, audioTime)
+		return len(out), nil
+	}
+	s.stream, err = s.client.NewPlayback(pulse.Int16Reader(pulseAudioCallBack),
 		pulse.PlaybackStereo,
 		pulse.PlaybackBufferSize(1024),
 		pulse.PlaybackSink(s.sink),
