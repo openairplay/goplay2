@@ -6,8 +6,8 @@ package filters
 #include <string.h>
 #include <stdlib.h>
 
-static int resample(SRC_STATE* state, int outputSample, short * input, size_t in_len, short * output, size_t out_len,
-					double ratio, size_t * input_frames_used, size_t * output_frames_gen) {
+static int resample(SRC_STATE* state, int outputSample, short * input, unsigned long in_len, short * output, unsigned long out_len,
+					double ratio, unsigned long * input_frames_used, unsigned long * output_frames_gen) {
 
 	float * inputf = malloc(in_len * sizeof(float));
 	src_short_to_float_array(input, inputf, in_len);
