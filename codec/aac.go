@@ -26,11 +26,7 @@ package codec
 
 #cgo pkg-config: fdk-aac
 
-#ifdef __linux__
 #include "fdk-aac/aacdecoder_lib.h"
-#else
-#include "aacdecoder_lib.h"
-#endif
 
 typedef struct {
 	HANDLE_AACDECODER dec;
