@@ -1,4 +1,5 @@
-//+build !linux
+//go:build !linux
+// +build !linux
 
 package codec
 
@@ -14,8 +15,10 @@ type PortAudioStream struct {
 	volumeMultiplier float64
 }
 
-func NewStream() Stream {
-	return &PortAudioStream{}
+func NewStream(volumeDb float64) Stream {
+	stream := &PortAudioStream{}
+	stream.SetVolume(volumeDb)
+	return stream
 }
 
 func (s *PortAudioStream) Init(callBack StreamCallback) error {

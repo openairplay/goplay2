@@ -61,21 +61,7 @@ type Stream interface {
 	Read(p []int16) (n int, err error)
 }
 
-type TimingPredicate func(playTime time.Time, sequence uint32, startTs uint32) TimingDecision
 type FilterFunction func(audioStream Stream, samples []int16, playTime time.Time, sequence uint32, startTs uint32) (int, error)
-
-func FilterWithPredicate(predicate TimingPredicate) FilterFunction {
-	return func(audioStream Stream, samples []int16, playTime time.Time, sequence uint32, startTs uint32) (int, error) {
-		command := predicate(playTime, sequence, startTs)
-		if command == PLAY {
-			return audioStream.Read(samples)
-		} else if command == DELAY {
-			return 0, ErrIsEmpty
-		}
-		// DISCARD
-		return 0, nil
-	}
-}
 
 // Ring is a circular buffer that implement io.ReaderWriter interface.
 type Ring struct {
@@ -155,10 +141,11 @@ func (r *Ring) Filter(predicate func(sequence uint32, startTs uint32) bool) {
 	for e := r.buffers.Front(); e != nil; e = e.Next() {
 		elem := e.Value.(*markedBuffer)
 		if predicate(elem.sequence, elem.startTs) {
+			next := e.Next()
 			prev := e.Prev()
 			r.buffers.Remove(e)
 			if prev == nil {
-				e = r.buffers.Back()
+				e = next
 			} else {
 				e = prev
 			}

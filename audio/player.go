@@ -5,7 +5,6 @@ import (
 	"goplay2/config"
 	"goplay2/globals"
 	"goplay2/rtp"
-	"log"
 	"time"
 )
 
@@ -38,7 +37,7 @@ func NewPlayer(audioClock *Clock, filter Filter) *Player {
 		filter:         filter,
 		ControlChannel: make(chan globals.ControlMessage, 100),
 		aacDecoder:     aacDecoder,
-		stream:         codec.NewStream(),
+		stream:         codec.NewStream(config.Config.Volume),
 		Status:         STOPPED,
 		ring:           New(globals.BufferSize / 2048),
 		untilSeq:       0,
@@ -118,7 +117,6 @@ func (p *Player) Run() {
 }
 
 func (p *Player) skipUntil(fromSeq int64, untilSeq int64) {
-	log.Printf("drop from sequence %v to %v\n", fromSeq, untilSeq)
 	// TODO : use also timestamp to have better precision
 	p.ring.Filter(func(sequence uint32, startTs uint32) bool {
 		return sequence > uint32(fromSeq) && sequence < uint32(untilSeq)
