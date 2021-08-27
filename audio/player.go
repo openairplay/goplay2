@@ -104,7 +104,7 @@ func (p *Player) Run() {
 					}
 				}
 				p.Status = PLAYING
-				p.clock.AnchorTime(msg.Param1, msg.Param2)
+				p.clock.SetAnchorTime(msg.Param1, msg.Param2)
 			case globals.SKIP:
 				p.skipUntil(msg.Param1, msg.Param2)
 			case globals.VOLUME:

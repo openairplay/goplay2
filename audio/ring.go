@@ -141,12 +141,9 @@ func (r *Ring) Filter(predicate func(sequence uint32, startTs uint32) bool) {
 	for e := r.buffers.Front(); e != nil; e = e.Next() {
 		elem := e.Value.(*markedBuffer)
 		if predicate(elem.sequence, elem.startTs) {
-			next := e.Next()
 			prev := e.Prev()
 			r.buffers.Remove(e)
-			if prev == nil {
-				e = next
-			} else {
+			if prev != nil {
 				e = prev
 			}
 		}

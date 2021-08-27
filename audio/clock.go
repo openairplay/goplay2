@@ -27,10 +27,10 @@ func (c *Clock) virtualToRealTime(elapsed int64) time.Time {
 	return time.Unix(0, time.Now().UnixNano()+(elapsed-c.networkClock.Now().UnixNano()))
 }
 
-// AnchorTime setup anchor time using the real clock
+// SetAnchorTime setup anchor time using the real clock
 // virtualAnchorTime - network Time (using PTP) of the anchorTime
 // rtpTime Timestamp - monotonic counter of frames
-func (c *Clock) AnchorTime(virtualAnchorTime int64, rtpTime int64) {
+func (c *Clock) SetAnchorTime(virtualAnchorTime int64, rtpTime int64) {
 	c.anchorRtpTime = rtpTime
 	c.networkAnchorTime = virtualAnchorTime
 	c.realNetworkAnchorTime = c.virtualToRealTime(virtualAnchorTime)
@@ -50,4 +50,8 @@ func (c *Clock) AudioTime(anchorAudioTime time.Duration, realAnchorTime time.Tim
 func (c *Clock) PlayTime(nowAudioTime time.Duration, playbackTime time.Duration) time.Time {
 	now := time.Now()
 	return now.Add(playbackTime - nowAudioTime)
+}
+
+func (c *Clock) AnchorTime() time.Time {
+	return c.realNetworkAnchorTime
 }
