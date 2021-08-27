@@ -12,6 +12,7 @@ type ResamplingFilter struct {
 	clock    *audio.Clock
 	metrics  *config.Metrics
 	srcState *SrcState
+	skewInfo skewData
 }
 
 func NewResamplingFilter(clock *audio.Clock, metrics *config.Metrics) (*ResamplingFilter, error) {
@@ -24,22 +25,31 @@ func NewResamplingFilter(clock *audio.Clock, metrics *config.Metrics) (*Resampli
 		clock:    clock,
 		metrics:  metrics,
 		srcState: srcState,
+		skewInfo: skewData{
+			skewAverage: 0,
+			count:       1,
+		},
 	}, nil
+}
+
+func (p *ResamplingFilter) Reset(clock *audio.Clock) {
+	p.skewInfo.reset(clock.AnchorTime())
 }
 
 func (p *ResamplingFilter) Apply(audioStream audio.Stream, samples []int16, nextTime time.Time, _ uint32, startTs uint32) (int, error) {
 	driftTime := p.clock.PacketTime(int64(startTs)).Sub(nextTime)
-	if driftTime < - 200 * time.Millisecond {
+	p.metrics.Drift(driftTime)
+	if driftTime < -150*time.Millisecond {
 		// drop packet if too old
 		return 0, nil
-	} else if driftTime > 200 * time.Millisecond {
+	} else if driftTime > 150*time.Millisecond {
 		// add silence if really too young
 		return 0, audio.ErrIsEmpty
 	}
-	driftRatio := float64(p.clock.PacketTime(int64(startTs)).Sub(p.clock.AnchorTime())) / float64(nextTime.Sub(p.clock.AnchorTime()))
+	skew := p.skewInfo.calculate(p.clock, nextTime, startTs)
 	input := make([]int16, len(samples))
 	peeked, _ := audioStream.Peek(input)
-	inputFramesUsed, outputFramesGen, err := p.srcState.Process(driftRatio, input[:peeked], samples)
+	inputFramesUsed, outputFramesGen, err := p.srcState.Process(skew, input[:peeked], samples)
 	if err != nil {
 		panic(err)
 	}

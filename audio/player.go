@@ -105,6 +105,7 @@ func (p *Player) Run() {
 				}
 				p.Status = PLAYING
 				p.clock.SetAnchorTime(msg.Param1, msg.Param2)
+				p.filter.Reset(p.clock)
 			case globals.SKIP:
 				p.skipUntil(msg.Param1, msg.Param2)
 			case globals.VOLUME:
