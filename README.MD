@@ -181,5 +181,9 @@ Example :
 ./goplay2 -sink alsa_output -i en0 -n aiwa -nosync
 ```
 
+#### Misc
+
+patch used for qemu until it is merged
+
 
 By [AlbanSeurat](https://github.com/AlbanSeurat)
