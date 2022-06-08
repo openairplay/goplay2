@@ -51,12 +51,12 @@ go build
 
 ### Dependencies 
 
-You need to have portaudio-dev, pulseaudio and lib-fdk-aac and go runtime installed to build this program
+You need to have portaudio-dev, pulseaudio, libsamplerate and lib-fdk-aac and go runtime installed to build this program
 
 #### Ubuntu 21.4 build
 
 ````shell
-sudo apt install golang-go libfdk-aac-dev
+sudo apt install golang-go libfdk-aac-dev libsamplerate-dev
 ````
 
 #### Rasbpian (buster)
@@ -71,12 +71,27 @@ apt-get install libfdk-aac-dev
 
 You also need to install go from https://golang.org/dl/ as version 1.16 is not supplied by buster (they only support 1.11)
 
+##### Raspberry 1 (arm6l)
+
+You can not rely on deb-multimedia, they only ship armv7 binary
+
+You will have to compile manually lib-fdk-aac
+
+````
+git clone --depth 1 https://github.com/mstorsjo/fdk-aac.git ~/ffmpeg-libraries/fdk-aac \
+  && cd ~/ffmpeg-libraries/fdk-aac \
+  && autoreconf -fiv \
+  && ./configure \
+  && make -j$(nproc) \
+  && sudo make install
+````
+
 #### Mac os build 
 
 * Having xcode properly installed (clang needed)
 
 ````shell
-brew install portaudio fdk-aac go 
+brew install portaudio fdk-aac libsamplerate go 
 ````
 
 ### Docker image
@@ -131,8 +146,6 @@ docker run \
 
 Note that mDNS by design will only work with networking mode "host" (recommended for beginners) or (mac/ip)vlan.
 
-#### Acknowledgments  
-
 ## Run
 
 - goplay2 by default run only on the ipv4 interface (because [this issue](https://github.com/golang/go/issues/31024) on ipv6 parsing) 
@@ -161,10 +174,16 @@ Ex: It takes around 60ms on my mac to launch the audio stream at the **Anchor Ti
 
 `sink` (pulse audio sink name) to replace default sink
 
+`nosync` (No Audio sync) disable experimental audio sync
+
 Example : 
 ```shell
-./goplay2 -sink alsa_output -i en0 -n aiwa
+./goplay2 -sink alsa_output -i en0 -n aiwa -nosync
 ```
+
+#### Misc
+
+patch used for qemu until it is merged
 
 
 By [AlbanSeurat](https://github.com/AlbanSeurat)

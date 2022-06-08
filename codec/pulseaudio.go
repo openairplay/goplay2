@@ -21,11 +21,19 @@ const (
 )
 
 type PaStream struct {
+	creation time.Time
 	client *pulse.Client
 	stream *pulse.PlaybackStream
 	sink   *pulse.Sink
-	buffer []int16
 	index  int
+}
+
+func (s *PaStream) AudioTime() time.Duration {
+	return time.Now().Sub(s.creation)
+}
+
+func (s *PaStream) FilterVolume(out []int16) int {
+	return len(out)
 }
 
 func dbToLinearVolume(volume float64) uint32 {
@@ -46,27 +54,12 @@ func NewStream() Stream {
 	}
 	return &PaStream{
 		client: client,
+		creation: time.Now(),
 	}
 }
 
 func (s *PaStream) Init(callBack StreamCallback) error {
 	var err error
-	streamCallback := func(out []int16) (int, error) {
-		var copied = 0
-		if s.index+rtpPacketSize < audioBufferSize {
-			callBack(s.buffer[s.index:s.index+rtpPacketSize], 0*time.Second, 0*time.Second)
-			copied = copy(out, s.buffer[:s.index+rtpPacketSize])
-			s.index += rtpPacketSize - copied
-		} else {
-			copied = copy(out, s.buffer[:s.index])
-			s.index -= copied
-		}
-		copy(s.buffer, s.buffer[copied:])
-		if s.index < 0 {
-			s.index = 0
-		}
-		return copied, nil
-	}
 	s.sink, err = s.client.SinkByID(config.Config.PulseSink)
 	if err != nil {
 		s.sink, err = s.client.DefaultSink()
@@ -74,7 +67,12 @@ func (s *PaStream) Init(callBack StreamCallback) error {
 	if err != nil {
 		return err
 	}
-	s.stream, err = s.client.NewPlayback(pulse.Int16Reader(streamCallback),
+	pulseAudioCallBack := func(out []int16) (int, error){
+		audioTime := s.AudioTime()
+		callBack(out, audioTime, audioTime)
+		return len(out), nil
+	}
+	s.stream, err = s.client.NewPlayback(pulse.Int16Reader(pulseAudioCallBack),
 		pulse.PlaybackStereo,
 		pulse.PlaybackBufferSize(1024),
 		pulse.PlaybackSink(s.sink),
@@ -82,9 +80,6 @@ func (s *PaStream) Init(callBack StreamCallback) error {
 	if err != nil {
 		return err
 	}
-
-	s.buffer = make([]int16, audioBufferSize)
-
 	return nil
 }
 
@@ -114,7 +109,6 @@ func (*SetSinkVolume) command() uint32 {
 }
 
 func (s *PaStream) SetVolume(volume float64) error {
-
 	linearVolume := dbToLinearVolume(volume)
 	vols := make(proto.ChannelVolumes, 2)
 

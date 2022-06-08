@@ -7,6 +7,7 @@ import (
 	"goplay2/config"
 	"goplay2/globals"
 	"goplay2/rtsp"
+	"log"
 	"strings"
 )
 
@@ -39,7 +40,7 @@ func (r *Rstp) OnSetParameterWeb(req *rtsp.Request) (*rtsp.Response, error) {
 			line := scanner.Text()
 			if strings.HasPrefix(line, "volume") {
 				if c, err := fmt.Sscanf(line, "volume: %f", &vol); c != 1 || err != nil {
-					fmt.Printf("erreur parsing volume parameters : %s\n", line)
+					log.Printf("erreur parsing volume parameters : %s\n", line)
 				} else {
 					config.Config.Volume = vol
 					r.player.ControlChannel <- globals.ControlMessage{MType: globals.VOLUME, Paramf: config.Config.Volume}

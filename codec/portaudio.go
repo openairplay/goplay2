@@ -1,18 +1,24 @@
-//+build !linux
+//go:build !linux
+// +build !linux
 
 package codec
 
 import (
 	"github.com/gordonklaus/portaudio"
+	"math"
+	"time"
 )
 
 type PortAudioStream struct {
-	out    []int16
-	stream *portaudio.Stream
+	out              []int16
+	stream           *portaudio.Stream
+	volumeMultiplier float64
 }
 
-func NewStream() Stream {
-	return &PortAudioStream{}
+func NewStream(volumeDb float64) Stream {
+	stream := &PortAudioStream{}
+	stream.SetVolume(volumeDb)
+	return stream
 }
 
 func (s *PortAudioStream) Init(callBack StreamCallback) error {
@@ -23,8 +29,7 @@ func (s *PortAudioStream) Init(callBack StreamCallback) error {
 	portAudioCallback := func(out []int16, info portaudio.StreamCallbackTimeInfo) {
 		callBack(out, info.CurrentTime, info.OutputBufferDacTime)
 	}
-	//TODO : get the framePerBuffer from setup
-	s.stream, err = portaudio.OpenDefaultStream(0, 2, 44100, 1024, portAudioCallback)
+	s.stream, err = portaudio.OpenDefaultStream(0, OutputChannel, SampleRate, 1024, portAudioCallback)
 	if err != nil {
 		return err
 	}
@@ -47,7 +52,18 @@ func (s *PortAudioStream) Stop() error {
 	return s.stream.Stop()
 }
 
-func (s *PortAudioStream) SetVolume(volume float64) error {
+func (s *PortAudioStream) AudioTime() time.Duration {
+	return s.stream.Time()
+}
+
+func (s *PortAudioStream) SetVolume(volumeLevelDb float64) error {
+	s.volumeMultiplier = 1.0 * math.Pow(10, volumeLevelDb/20.0)
 	return nil
-	// to nothing on mac
+}
+
+func (s *PortAudioStream) FilterVolume(out []int16) int {
+	for index, sample := range out {
+		out[index] = int16(float64(sample) * s.volumeMultiplier)
+	}
+	return len(out)
 }

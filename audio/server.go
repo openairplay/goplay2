@@ -3,31 +3,23 @@ package audio
 import (
 	"encoding/binary"
 	"errors"
-	"goplay2/codec"
 	"goplay2/globals"
+	"goplay2/rtp"
 	"io"
 	"net"
 	"time"
 )
 
 type Server struct {
-	aacDecoder     *codec.AacDecoder
 	sharedKey      []byte
 	player         *Player
 	controlChannel chan interface{}
 }
 
 func NewServer(player *Player) *Server {
-	aacDecoder := codec.NewAacDecoder()
-
-	asc := []byte{0x12, 0x10}
-	if err := aacDecoder.InitRaw(asc); err != nil {
-		globals.ErrLog.Panicf("init decoder failed, err is %s", err)
-	}
 
 	return &Server{
-		aacDecoder: aacDecoder,
-		player:     player,
+		player: player,
 	}
 }
 
@@ -57,16 +49,16 @@ func (s *Server) control(l net.Listener) {
 	}
 	defer conn.Close()
 	for {
-		frame, err := s.decodeToPcm(conn)
+		frame, err := s.decodeToFrame(conn)
 		if err != nil {
-			globals.ErrLog.Printf("error decoding to pcm %v", err)
+			globals.ErrLog.Printf("error parsing the packet %v", err)
 			return
 		}
 		s.player.Push(frame)
 	}
 }
 
-func (s *Server) decodeToPcm(reader io.Reader) (*PCMFrame, error) {
+func (s *Server) decodeToFrame(reader io.Reader) (*rtp.Frame, error) {
 	var packetSize uint16
 	err := binary.Read(reader, binary.BigEndian, &packetSize)
 	if err != nil {
@@ -76,7 +68,7 @@ func (s *Server) decodeToPcm(reader io.Reader) (*PCMFrame, error) {
 	if _, err := io.ReadFull(reader, buffer); err != nil {
 		return nil, err
 	}
-	return NewFrame(s.aacDecoder, s.sharedKey, buffer)
+	return rtp.NewFrame(buffer, s.sharedKey)
 }
 
 func (s *Server) SetRateAnchorTime(rtpTime uint32, networkTime time.Time) {
@@ -84,7 +76,7 @@ func (s *Server) SetRateAnchorTime(rtpTime uint32, networkTime time.Time) {
 }
 
 func (s *Server) Teardown() {
-	s.player.ControlChannel <- globals.ControlMessage{MType: globals.PAUSE}
+	s.player.ControlChannel <- globals.ControlMessage{MType: globals.STOP}
 }
 
 func (s *Server) SetRate0() {

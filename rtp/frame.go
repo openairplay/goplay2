@@ -1,4 +1,4 @@
-package audio
+package rtp
 
 import (
 	"encoding/binary"
@@ -12,16 +12,20 @@ type TcpPacket struct {
 	SequenceNumber uint32
 }
 
-type PCMFrame struct {
+type Frame struct {
 	TcpPacket
-	pcmData []byte
+	aacData []byte
 }
 
-func (p *PCMFrame) Data() []byte {
-	return p.pcmData
+func (p *Frame) PcmData(aacDecoder *codec.AacDecoder, pcm []int16) (int, error) {
+	decode, err := aacDecoder.DecodeTo(p.aacData, pcm)
+	if err != nil {
+		return -1, err
+	}
+	return decode, nil
 }
 
-func NewFrame(aacDecoder *codec.AacDecoder, sharedKey []byte, rawPacket []byte) (*PCMFrame, error) {
+func NewFrame(rawPacket []byte, sharedKey []byte) (*Frame, error) {
 	var err error
 	packet := TcpPacket{}
 	if err = packet.Unmarshal(rawPacket); err != nil {
@@ -32,18 +36,17 @@ func NewFrame(aacDecoder *codec.AacDecoder, sharedKey []byte, rawPacket []byte) 
 	packet.Marker = false  // used by apple in sequenceNumber
 	packet.PayloadType = 0 // used by apple in sequenceNumber
 	packet.SequenceNumber = binary.BigEndian.Uint32(seqBytes[:])
-	message := packet.Payload[:len(packet.Payload)-24]
+	encryptedData := packet.Payload[:len(packet.Payload)-24]
 	nonce := packet.Payload[len(packet.Payload)-8:]
 	var mac [16]byte
 	copy(mac[:], packet.Payload[len(packet.Payload)-24:len(packet.Payload)-8])
 	aad := packet.Raw[4:0xc]
-	decrypted, err := chacha20poly1305.DecryptAndVerify(sharedKey, nonce, message, mac, aad)
+	decrypted, err := chacha20poly1305.DecryptAndVerify(sharedKey,
+		nonce, encryptedData, mac, aad)
 	if err != nil {
 		return nil, err
 	}
-	decode, err := aacDecoder.Decode(decrypted)
-	if err != nil {
-		return nil, err
-	}
-	return &PCMFrame{packet, decode}, nil
+	return &Frame{TcpPacket: packet,
+		aacData: decrypted,
+	}, nil
 }
